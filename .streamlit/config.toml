@@ -7,16 +7,9 @@ textColor = "#e6edf3"
 font = "sans serif"
 
 [server]
-port = 8501
-headless = false
+headless = true
 enableCORS = false
 enableXsrfProtection = false
-maxUploadSize = 10
 
 [browser]
 gatherUsageStats = false
-serverAddress = "localhost"
-serverPort = 8501
-
-[runner]
-fastReruns = true
