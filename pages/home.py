@@ -8,7 +8,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import streamlit as st
 import pandas as pd
-from streamlit_autorefresh import st_autorefresh
 from data.fetcher import get_index_data, get_gainers_losers, get_ticker_prices
 from data.news import fetch_all_headlines
 from data.stocks_list import NIFTY50_SYMBOLS, get_display_name
@@ -18,7 +17,10 @@ from utils.helpers import fmt_price, fmt_change, ist_now, color_for_change
 
 
 def render_home():
-    st_autorefresh(interval=REFRESH_INTERVAL * 1000, key="home_refresh")
+    st.markdown(
+        f'<meta http-equiv="refresh" content="{REFRESH_INTERVAL}">',
+        unsafe_allow_html=True,
+    )
 
     st.markdown(
         f'<div class="refresh-info"><span class="live-dot"></span> Live · Updated {ist_now()}</div>',

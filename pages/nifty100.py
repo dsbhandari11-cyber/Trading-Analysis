@@ -11,7 +11,6 @@ import time
 import streamlit as st
 import pandas as pd
 import numpy as np
-from streamlit_autorefresh import st_autorefresh
 from data.fetcher import batch_download, get_pe_ratio
 from data.technical import calculate_rsi, calculate_volume_ratio, price_change_pct, momentum_score
 from data.stocks_list import NIFTY100_SYMBOLS, get_display_name
@@ -25,7 +24,10 @@ _BATCH_PROCESS_DELAY = 0.05
 
 
 def render_nifty100():
-    st_autorefresh(interval=REFRESH_INTERVAL * 1000, key="n100_refresh")
+    st.markdown(
+        f'<meta http-equiv="refresh" content="{REFRESH_INTERVAL}">',
+        unsafe_allow_html=True,
+    )
 
     st.markdown(
         '<div class="section-header"><span class="section-title">Nifty 100 Screener</span>'

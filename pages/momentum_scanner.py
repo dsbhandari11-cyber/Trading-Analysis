@@ -10,7 +10,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import time
 import streamlit as st
 import pandas as pd
-from streamlit_autorefresh import st_autorefresh
 from data.fetcher import batch_download
 from data.technical import (
     calculate_rsi, calculate_volume_ratio, price_change_pct,
@@ -30,7 +29,10 @@ log = get_logger(__name__)
 
 
 def render_momentum_scanner():
-    st_autorefresh(interval=REFRESH_INTERVAL * 1000, key="momentum_refresh")
+    st.markdown(
+        f'<meta http-equiv="refresh" content="{REFRESH_INTERVAL}">',
+        unsafe_allow_html=True,
+    )
 
     st.markdown(
         '<div class="section-header"><span class="section-title">Momentum Scanner</span>'
