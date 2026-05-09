@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Bhandari Trading Analysis Dashboard
 
 Professional dark-themed market intelligence dashboard built with Streamlit + Python.
@@ -182,3 +183,7 @@ Screener_1/
 | News not loading | Check internet; RSS feeds may be temporarily down |
 | Port 8501 in use | `streamlit run main.py --server.port 8502` |
 "# Trading-Analysis" 
+=======
+# Trading-Analysis
+Able to understand the marking analysis
+>>>>>>> ab08e6762186c0b24c62d6340e5295b2c36ec5aa
