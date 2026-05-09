@@ -1,0 +1,298 @@
+/* =====================================================
+   Bhandari Trading Analysis — Dark Terminal Theme
+   ===================================================== */
+
+/* Base */
+html, body, .stApp {
+    background-color: #0d1117 !important;
+    color: #e6edf3 !important;
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+/* Hide default Streamlit menu & footer */
+#MainMenu { visibility: hidden; }
+footer { visibility: hidden; }
+header { visibility: hidden; }
+
+/* ---- Ticker Bar ---- */
+.ticker-outer {
+    background: #0d1117;
+    border-bottom: 1px solid #21262d;
+    padding: 6px 0;
+    overflow: hidden;
+    width: 100%;
+}
+.ticker-track {
+    display: inline-flex;
+    white-space: nowrap;
+    animation: ticker-scroll 80s linear infinite;
+}
+.ticker-track:hover { animation-play-state: paused; }
+.ticker-item {
+    display: inline-block;
+    padding: 0 24px;
+    font-size: 0.82rem;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.03em;
+}
+.ticker-item .ticker-name { color: #8b949e; margin-right: 6px; }
+.ticker-item .ticker-price { color: #e6edf3; font-weight: 600; }
+.ticker-item .ticker-up   { color: #00d4aa; margin-left: 4px; }
+.ticker-item .ticker-down { color: #ff4444; margin-left: 4px; }
+@keyframes ticker-scroll {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+/* ---- News Banner ---- */
+.news-banner-outer {
+    background: linear-gradient(90deg, #1a1f2e 0%, #1c2333 100%);
+    border: 1px solid #f0ad4e44;
+    border-left: 3px solid #f0ad4e;
+    border-radius: 6px;
+    padding: 8px 14px;
+    margin: 6px 0 10px 0;
+    overflow: hidden;
+}
+.news-banner-label {
+    display: inline-block;
+    background: #f0ad4e;
+    color: #0d1117;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 3px;
+    margin-right: 10px;
+    letter-spacing: 0.05em;
+    vertical-align: middle;
+}
+.news-banner-track {
+    display: inline-flex;
+    white-space: nowrap;
+    animation: banner-scroll 60s linear infinite;
+}
+.news-banner-track:hover { animation-play-state: paused; }
+.news-banner-text {
+    color: #f0ad4e;
+    font-size: 0.83rem;
+    padding: 0 30px;
+}
+@keyframes banner-scroll {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+/* ---- App Header ---- */
+.app-header {
+    text-align: center;
+    padding: 14px 0 10px 0;
+    border-bottom: 1px solid #21262d;
+    margin-bottom: 12px;
+}
+.app-title {
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: #e6edf3;
+    letter-spacing: -0.02em;
+    margin: 0;
+}
+.app-title span { color: #00d4aa; }
+.app-sub {
+    color: #8b949e;
+    font-size: 0.82rem;
+    margin-top: 2px;
+}
+.live-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    background: #00d4aa;
+    border-radius: 50%;
+    margin-right: 5px;
+    animation: pulse 2s infinite;
+    vertical-align: middle;
+}
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.3; }
+}
+
+/* ---- Navigation ---- */
+.nav-row {
+    display: flex;
+    gap: 8px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 6px;
+    margin-bottom: 16px;
+}
+.nav-btn {
+    flex: 1;
+    text-align: center;
+    padding: 8px 0;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #8b949e;
+    background: transparent;
+    border: none;
+    transition: all 0.2s;
+}
+.nav-btn:hover  { background: #1c2333; color: #e6edf3; }
+.nav-btn.active { background: #00d4aa22; color: #00d4aa; border: 1px solid #00d4aa44; }
+
+/* ---- Metric Cards ---- */
+.metric-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 14px 18px;
+    transition: border-color 0.2s;
+}
+.metric-card:hover { border-color: #00d4aa44; }
+.metric-label {
+    color: #8b949e;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+}
+.metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    color: #e6edf3;
+}
+.metric-delta-up   { color: #00d4aa; font-size: 0.85rem; margin-top: 2px; }
+.metric-delta-down { color: #ff4444; font-size: 0.85rem; margin-top: 2px; }
+.metric-delta-flat { color: #8b949e; font-size: 0.85rem; margin-top: 2px; }
+
+/* ---- Signal Cards ---- */
+.signal-card {
+    border-radius: 9px;
+    padding: 12px 14px;
+    margin: 5px 0;
+    border-left: 3px solid;
+}
+.signal-bull {
+    background: #0a2018;
+    border-color: #00d4aa;
+}
+.signal-bear {
+    background: #1e0a0a;
+    border-color: #ff4444;
+}
+.signal-neutral {
+    background: #1c1c1c;
+    border-color: #8b949e;
+}
+.signal-ticker { font-weight: 700; color: #e6edf3; font-size: 0.95rem; }
+.signal-price  { font-family: monospace; color: #8b949e; font-size: 0.82rem; }
+.signal-badge  {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+.badge-breakout { background: #00d4aa22; color: #00d4aa; border: 1px solid #00d4aa55; }
+.badge-reversal { background: #f0ad4e22; color: #f0ad4e; border: 1px solid #f0ad4e55; }
+.badge-overbought { background: #ff444422; color: #ff4444; border: 1px solid #ff444455; }
+
+/* ---- Table overrides ---- */
+.stDataFrame { border: 1px solid #30363d !important; border-radius: 8px; }
+.stDataFrame thead th {
+    background: #161b22 !important;
+    color: #8b949e !important;
+    font-size: 0.78rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.stDataFrame tbody tr:hover { background: #1c2333 !important; }
+
+/* ---- Section headers ---- */
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #21262d;
+    padding-bottom: 6px;
+    margin: 16px 0 10px 0;
+}
+.section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #e6edf3;
+    margin: 0;
+}
+.section-badge {
+    background: #00d4aa22;
+    color: #00d4aa;
+    font-size: 0.7rem;
+    padding: 1px 7px;
+    border-radius: 3px;
+    border: 1px solid #00d4aa44;
+}
+
+/* ---- Filter bar ---- */
+.filter-bar {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+}
+
+/* ---- Streamlit widget overrides ---- */
+.stSelectbox label, .stSlider label, .stCheckbox label,
+.stNumberInput label, .stTextInput label {
+    color: #8b949e !important;
+    font-size: 0.82rem !important;
+}
+div[data-testid="stMetric"] {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 12px 16px;
+}
+div[data-testid="stMetricValue"] { color: #e6edf3 !important; }
+div[data-testid="stMetricDelta"] svg { display: none; }
+
+/* Button overrides */
+.stButton > button {
+    background: #161b22 !important;
+    border: 1px solid #30363d !important;
+    color: #e6edf3 !important;
+    border-radius: 7px !important;
+    font-weight: 600 !important;
+    transition: all 0.2s !important;
+}
+.stButton > button:hover {
+    background: #1c2333 !important;
+    border-color: #00d4aa88 !important;
+    color: #00d4aa !important;
+}
+
+/* Divider */
+hr { border-color: #21262d !important; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #0d1117; }
+::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #8b949e; }
+
+/* Gainers/Losers row colors */
+.row-gain { background: #0a201844 !important; }
+.row-loss { background: #1e0a0a44 !important; }
+
+/* Refresh indicator */
+.refresh-info {
+    color: #8b949e;
+    font-size: 0.75rem;
+    text-align: right;
+    margin-top: -8px;
+    margin-bottom: 8px;
+}
