@@ -221,7 +221,7 @@ def _render_rankings(results: dict):
             unique.append(s)
 
     fig = momentum_bar_chart(unique)
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
 
     st.markdown("---")
     st.markdown(
@@ -265,7 +265,7 @@ def _render_rankings(results: dict):
             .map(color_pct, subset=["1D %"])
             .set_properties(**{"font-size": "0.82rem"})
         )
-        st.dataframe(styled, use_container_width=True, hide_index=True, height=400)
+        st.dataframe(styled, width="stretch", hide_index=True, height=400)
 
     st.markdown("---")
     st.markdown(

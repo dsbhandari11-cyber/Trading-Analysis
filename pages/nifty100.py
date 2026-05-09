@@ -169,7 +169,7 @@ def _render_table(filters: dict):
 
     display_df = _build_display_df(df)
     styled = _style_df(display_df, df)
-    st.dataframe(styled, use_container_width=True, hide_index=True, height=520)
+    st.dataframe(styled, width="stretch", hide_index=True, height=520)
 
 
 def _build_display_df(df: pd.DataFrame) -> pd.DataFrame:

@@ -60,7 +60,7 @@ def _render_major_indices():
             st.markdown(card_html, unsafe_allow_html=True)
             if hist is not None and not hist.empty:
                 fig = mini_sparkline(hist, positive=(pct >= 0))
-                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+                st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
 
     st.markdown("---")
 
@@ -79,7 +79,7 @@ def _render_heatmap():
             for p in prices
         ]
         fig = heatmap_chart(heatmap_data)
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
     else:
         st.info("Heatmap data unavailable. Retrying on next refresh.")
 
@@ -109,7 +109,7 @@ def _render_gainers_losers():
                 df.style.map(
                     lambda v: f"color: {COLORS['positive']}", subset=["Change %"]
                 ),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
                 height=320,
             )
@@ -129,7 +129,7 @@ def _render_gainers_losers():
                 df.style.map(
                     lambda v: f"color: {COLORS['negative']}", subset=["Change %"]
                 ),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
                 height=320,
             )
