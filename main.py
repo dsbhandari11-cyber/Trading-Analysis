@@ -131,15 +131,15 @@ for mdata in markets.values():
     </div>"""
 
 st.markdown(f"""
-<div class="app-header-v2">
-    <div class="app-header-left">
+<div class="paytm-top-shell">
+    <div class="paytm-brand">
         <div class="app-title-v2">
             <span class="brand-accent">Bhandari</span> Trading Analysis
         </div>
         <div class="app-sub-v2">
             <span class="live-dot-v2" style="background:{dot_color};box-shadow:{dot_shadow};"></span>
-            <span style="color:{dot_color};font-weight:700;font-size:0.72rem;letter-spacing:0.06em;">{status_txt}</span>
-            <span style="color:#30363d;">|</span>
+            <span style="color:{dot_color};font-weight:800;font-size:0.72rem;letter-spacing:0.06em;">{status_txt}</span>
+            <span class="header-separator">|</span>
             Professional Market Intelligence Dashboard
         </div>
     </div>
@@ -171,7 +171,22 @@ _all_search_opts = {
 
 _REFRESH_OPTIONS = {"10 sec": 10, "30 sec": 30, "1 min": 60, "5 min": 300, "10 min": 600}
 
-search_col, nav_col, refresh_col = st.columns([1.6, 2.0, 0.65])
+NAV_ITEMS = [
+    ("Stocks", "Stocks", "Home"),
+    ("F&O", "F&O", "Momentum"),
+    ("Dashboard", "Dashboard", "Home"),
+    ("Market", "Market", "Nifty100"),
+    ("Portfolio", "Portfolio", None),
+    ("Positions", "Positions", None),
+    ("Orders", "Orders", None),
+    ("Funds", "Funds", None),
+    ("Call Us", "Call Us", None),
+    ("ID", "ID", None),
+    ("Apps", "Apps", None),
+    ("More", "More", None),
+]
+
+search_col, refresh_col = st.columns([2.4, 0.75])
 
 with search_col:
     chosen = st.selectbox(
@@ -188,14 +203,6 @@ with search_col:
         st.session_state.search_counter += 1
         st.rerun()
 
-PAGES = {"Home": "🏠 Home", "Nifty100": "📊 Nifty 100", "Momentum": "🚀 Momentum Scanner"}
-with nav_col:
-    nav_cols = st.columns(len(PAGES))
-    for col, (key, label) in zip(nav_cols, PAGES.items()):
-        if col.button(label, key=f"nav_{key}", use_container_width=True):
-            st.session_state.page = key
-            st.rerun()
-
 with refresh_col:
     _current_label = next(
         (k for k, v in _REFRESH_OPTIONS.items() if v == st.session_state.refresh_interval),
@@ -209,7 +216,19 @@ with refresh_col:
     )
     st.session_state.refresh_interval = _REFRESH_OPTIONS[_sel]
 
-st.markdown("---")
+st.markdown('<div class="top-nav-band">', unsafe_allow_html=True)
+nav_cols = st.columns([1.05, 0.75, 1.35, 1.0, 1.15, 1.15, 0.95, 0.85, 1.05, 0.6, 0.7, 0.75])
+current_page = st.session_state.get("page", "Home")
+for col, (key, label, target) in zip(nav_cols, NAV_ITEMS):
+    active = target == current_page or (key == "Stocks" and current_page == "StockDetail")
+    nav_label = f"{'• ' if active else ''}{label}"
+    if col.button(nav_label, key=f"nav_{key}", use_container_width=True):
+        if target:
+            st.session_state.page = target
+            st.rerun()
+        else:
+            st.toast(f"{label} tools are coming soon.")
+st.markdown('</div>', unsafe_allow_html=True)
 
 # ── Page routing ─────────────────────────────────────────────────────────────
 page = st.session_state.page

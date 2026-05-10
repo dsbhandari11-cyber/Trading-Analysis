@@ -206,22 +206,16 @@ def _render_watchlist_panel():
         or query in clean_symbol(sym).lower()
     ][:20]
 
-    if matches:
-        labels = [f"{clean_symbol(sym)} - {name}" for sym, name in matches]
-        sel_label = st.selectbox(
-            "Results",
-            labels,
-            key="home_wl_search_result",
-            label_visibility="collapsed",
-        )
-        sel_sym = matches[labels.index(sel_label)][0]
-        oc1, oc2 = st.columns(2)
-        if oc1.button("Open", key="home_wl_open", use_container_width=True):
-            _add_stock(sel_sym)
-            _go_to_stock(sel_sym)
-        if oc2.button("Add", key="home_wl_add", use_container_width=True):
-            _add_stock(sel_sym)
-            st.toast(f"Added {clean_symbol(sel_sym)}")
+    if matches and query:
+        st.markdown('<div class="wl-section-label">SEARCH RESULTS</div>', unsafe_allow_html=True)
+        for sel_sym, sel_name in matches[:6]:
+            if st.button(
+                f"{clean_symbol(sel_sym)} - {sel_name}",
+                key=f"home_wl_pick_{sel_sym}",
+                use_container_width=True,
+            ):
+                _add_stock(sel_sym)
+                _go_to_stock(sel_sym)
 
     with st.expander("▸ Add ticker manually", expanded=False):
         exchange = st.radio("Exchange", ["NSE", "US"], horizontal=True, key="home_wl_exchange")
@@ -269,7 +263,11 @@ def _render_watchlist_panel():
             unsafe_allow_html=True,
         )
         bc1, bc2 = st.columns([5, 1])
-        if bc1.button("↗ Analyse", key=f"home_wl_sel_{sym}", use_container_width=True):
+        if bc1.button(
+            f"{ticker} - {name}",
+            key=f"home_wl_sel_{sym}",
+            use_container_width=True,
+        ):
             _go_to_stock(sym)
         if bc2.button("✕", key=f"home_wl_rm_{sym}", use_container_width=True):
             _remove_stock(sym)
@@ -277,6 +275,8 @@ def _render_watchlist_panel():
 
 
 def _render_index_chart():
+    from components.advanced_chart import render_chart_controls, render_advanced_chart
+
     sel_name = st.selectbox(
         "Index",
         list(_INDEX_OPTIONS.keys()),
@@ -303,12 +303,8 @@ def _render_index_chart():
         unsafe_allow_html=True,
     )
 
-    hist = get_history(symbol, period="3mo")
-    if hist is not None and not hist.empty:
-        fig = _build_index_chart(hist)
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-    else:
-        st.info("Chart data unavailable for this index.")
+    interval = render_chart_controls(f"index_{symbol}")
+    render_advanced_chart(symbol, interval=interval, height=520)
 
 
 def _render_strategy_panel():
@@ -424,25 +420,21 @@ def _render_mover_list(items: list, pct_color: str):
         price = item["price"]
         pct = item["pct_change"]
         ticker = clean_symbol(sym)
-        c1, c2, c3, c4, c5 = st.columns([1.2, 2.2, 1.5, 1.1, 0.7])
-        c1.markdown(
-            f'<span style="color:#e6edf3;font-weight:800;font-family:monospace;font-size:0.85rem;">{ticker}</span>',
-            unsafe_allow_html=True,
-        )
+        c1, c2, c3, c4 = st.columns([1.4, 2.2, 1.5, 1.1])
+        if c1.button(ticker, key=f"home_mv_{sym}", help=f"Open {name}", use_container_width=True):
+            _go_to_stock(sym)
         c2.markdown(
-            f'<span style="color:#8b949e;font-size:0.78rem;">{name[:20]}</span>',
+            f'<span style="color:#667085;font-size:0.78rem;">{name[:20]}</span>',
             unsafe_allow_html=True,
         )
         c3.markdown(
-            f'<span style="font-family:monospace;color:#e6edf3;font-size:0.85rem;">₹{price:,.2f}</span>',
+            f'<span style="font-family:monospace;color:#182230;font-size:0.85rem;">₹{price:,.2f}</span>',
             unsafe_allow_html=True,
         )
         c4.markdown(
             f'<span style="color:{pct_color};font-weight:700;font-size:0.85rem;">{pct:+.2f}%</span>',
             unsafe_allow_html=True,
         )
-        if c5.button("↗", key=f"home_mv_{sym}", help=f"Analyse {name}", use_container_width=True):
-            _go_to_stock(sym)
 
 
 def _render_compact_scanner():
@@ -480,6 +472,12 @@ def _render_compact_scanner():
                     </div>""",
                     unsafe_allow_html=True,
                 )
+                if st.button(
+                    f"{sig['symbol'].replace('.NS','')} - {get_display_name(sig['symbol'])}",
+                    key=f"home_signal_pick_{sig['symbol']}_{i}",
+                    use_container_width=True,
+                ):
+                    _go_to_stock(sig["symbol"])
 
         if st.button("View Full Scanner →", key="home_full_scan"):
             st.session_state.page = "Momentum"
@@ -511,11 +509,11 @@ def _render_news_feed():
         link = item.get("link", "#")
         published = item.get("published", "")
         st.markdown(
-            f'<div style="background:#161b22;border:1px solid #30363d;border-radius:7px;'
+            f'<div style="background:#ffffff;border:1px solid #dce3ee;border-radius:7px;'
             f'padding:10px 14px;margin:5px 0;">'
-            f'<a href="{link}" target="_blank" style="color:#e6edf3;text-decoration:none;'
+            f'<a href="{link}" target="_blank" style="color:#182230;text-decoration:none;'
             f'font-size:0.88rem;font-weight:600;">{title}</a>'
-            f'<div style="color:#8b949e;font-size:0.74rem;margin-top:4px;">'
+            f'<div style="color:#667085;font-size:0.74rem;margin-top:4px;">'
             f'{source} · {published[:16] if published else ""}</div>'
             f'</div>',
             unsafe_allow_html=True,

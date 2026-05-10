@@ -84,8 +84,18 @@ def render_watchlist_sidebar() -> None:
     catalog = all_stock_options()
 
     with st.sidebar:
-        st.markdown('<div class="watchlist-title">Watchlist</div>', unsafe_allow_html=True)
-        st.caption("NSE and US equities")
+        st.markdown(
+            '<div class="side-nav-title">Trading</div>'
+            '<div class="side-nav-item active">⌂ Home</div>'
+            '<div class="side-nav-item">▥ Charting</div>'
+            '<div class="side-nav-item">▨ Trading</div>'
+            '<div class="side-nav-item">◫ Portfolio</div>'
+            '<div class="side-nav-item">◎ Profile</div>'
+            '<div class="side-nav-item">▣ Analysis</div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown('<div class="watchlist-title">Stocks</div>', unsafe_allow_html=True)
+        st.caption("Tap any stock name to analyze")
 
         query = st.text_input(
             "Search stocks",
@@ -102,22 +112,16 @@ def render_watchlist_sidebar() -> None:
             or query in clean_symbol(symbol).lower()
         ][:25]
 
-        if matches:
-            labels = [_option_label(symbol, name) for symbol, name in matches]
-            selected_label = st.selectbox(
-                "Search results",
-                labels,
-                label_visibility="collapsed",
-                key="watchlist_search_result",
-            )
-            selected_symbol = matches[labels.index(selected_label)][0]
-            c1, c2 = st.columns(2)
-            if c1.button("Open", key="watchlist_open_search", use_container_width=True):
-                _add_stock(selected_symbol)
-                _select_stock(selected_symbol)
-            if c2.button("Add", key="watchlist_add_search", use_container_width=True):
-                _add_stock(selected_symbol)
-                st.toast(f"Added {clean_symbol(selected_symbol)}")
+        if matches and query:
+            st.markdown('<div class="watchlist-subtitle">Search Results</div>', unsafe_allow_html=True)
+            for selected_symbol, selected_name in matches[:8]:
+                if st.button(
+                    _option_label(selected_symbol, selected_name),
+                    key=f"watchlist_search_pick_{selected_symbol}",
+                    use_container_width=True,
+                ):
+                    _add_stock(selected_symbol)
+                    _select_stock(selected_symbol)
         elif query:
             st.caption("No catalog match. Add manually below.")
 
@@ -158,8 +162,12 @@ def render_watchlist_sidebar() -> None:
                 """,
                 unsafe_allow_html=True,
             )
-            c1, c2 = st.columns([4, 1])
-            if c1.button("Analyse", key=f"watchlist_select_{symbol}", use_container_width=True):
+            c1, c2 = st.columns([5, 1])
+            if c1.button(
+                f"{clean_symbol(symbol)} - {name}",
+                key=f"watchlist_select_{symbol}",
+                use_container_width=True,
+            ):
                 _select_stock(symbol)
             if c2.button("X", key=f"watchlist_remove_{symbol}", use_container_width=True):
                 _remove_stock(symbol)

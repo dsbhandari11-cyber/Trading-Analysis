@@ -161,7 +161,7 @@ def _render_table(filters: dict):
     st.dataframe(styled, use_container_width=True, hide_index=True, height=520)
 
     st.markdown(
-        '<div style="margin-top:10px;color:#8b949e;font-size:0.78rem;">↗ Select a stock from the table to open full analysis:</div>',
+        '<div style="margin-top:10px;color:#667085;font-size:0.78rem;">Select a stock name below to open full analysis:</div>',
         unsafe_allow_html=True,
     )
     sym_opts = {f"{r['symbol'].replace('.NS','')} — {r['name']}": r["symbol"] for _, r in df.iterrows()}

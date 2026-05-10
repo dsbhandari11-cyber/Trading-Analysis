@@ -58,15 +58,15 @@ MAX_NEWS_ITEMS = 30
 NEWS_API_KEY = os.getenv("NEWS_API_KEY", "")
 
 COLORS = {
-    "positive": "#00d4aa",
-    "negative": "#ff4444",
-    "neutral": "#8b949e",
-    "warning": "#f0ad4e",
-    "accent": "#00d4aa",
-    "bg_card": "#1c2333",
-    "bg_secondary": "#161b22",
-    "bg_primary": "#0d1117",
-    "border": "#30363d",
-    "text": "#e6edf3",
-    "text_muted": "#8b949e",
+    "positive": "#0f9f6e",
+    "negative": "#d92d20",
+    "neutral": "#667085",
+    "warning": "#f79009",
+    "accent": "#0052a4",
+    "bg_card": "#ffffff",
+    "bg_secondary": "#f8fafc",
+    "bg_primary": "#f5f7fb",
+    "border": "#dce3ee",
+    "text": "#182230",
+    "text_muted": "#667085",
 }

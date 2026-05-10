@@ -42,9 +42,9 @@ def render_momentum_scanner():
 
     st.markdown(
         f"""
-        <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;
-                    padding:10px 16px;margin-bottom:12px;font-size:0.82rem;color:#8b949e;">
-            <b style="color:#e6edf3;">Signal Criteria:</b>
+        <div style="background:#ffffff;border:1px solid #dce3ee;border-radius:8px;
+                    padding:10px 16px;margin-bottom:12px;font-size:0.82rem;color:#667085;">
+            <b style="color:#182230;">Signal Criteria:</b>
             &nbsp; 🟢 Breakout: Vol &gt; {VOLUME_MOMENTUM_MULTIPLIER}x avg + RSI &gt; {RSI_OVERBOUGHT} + price breakout
             &nbsp;|&nbsp; 🔴 Reversal: RSI &lt; {RSI_OVERSOLD}
             &nbsp;|&nbsp; ⚡ Momentum: Vol spike + positive price trend
@@ -172,25 +172,25 @@ def _render_signal_cards(signals: list, signal_type: str):
             </div>
             <div class="signal-price">{sig['name'][:28]}</div>
             <div style="display:flex;gap:16px;margin-top:8px;font-size:0.8rem;">
-                <div><span style="color:#8b949e;">Price </span>
-                     <span style="color:#e6edf3;font-family:monospace;">₹{sig['price']:,.2f}</span></div>
-                <div><span style="color:#8b949e;">RSI </span>
-                     <span style="color:#e6edf3;">{rsi_str}</span></div>
-                <div><span style="color:#8b949e;">Vol </span>
-                     <span style="color:#e6edf3;">{vol_str}</span></div>
-                <div><span style="color:#8b949e;">1D </span>
+                <div><span style="color:#667085;">Price </span>
+                     <span style="color:#182230;font-family:monospace;">₹{sig['price']:,.2f}</span></div>
+                <div><span style="color:#667085;">RSI </span>
+                     <span style="color:#182230;">{rsi_str}</span></div>
+                <div><span style="color:#667085;">Vol </span>
+                     <span style="color:#182230;">{vol_str}</span></div>
+                <div><span style="color:#667085;">1D </span>
                      <span style="color:{chg_color};">{chg_sign}{chg1d:.2f}%</span></div>
             </div>
             <div style="margin-top:6px;">
-                <span style="color:#8b949e;font-size:0.76rem;">Momentum Score: </span>
-                <span style="color:#00d4aa;font-weight:700;font-size:0.85rem;">{sig['momentum_score']:.1f}</span>
+                <span style="color:#667085;font-size:0.76rem;">Momentum Score: </span>
+                <span style="color:#0f9f6e;font-weight:700;font-size:0.85rem;">{sig['momentum_score']:.1f}</span>
             </div>
         </div>
         """
         with cols[i % 2]:
             st.markdown(card_html, unsafe_allow_html=True)
             if st.button(
-                f"↗ Analyze {sig['symbol'].replace('.NS','')}",
+                f"{sig['symbol'].replace('.NS','')} - {sig['name']}",
                 key=f"scan_analyze_{signal_type}_{sig['symbol']}_{i}",
                 use_container_width=True,
             ):
@@ -281,9 +281,9 @@ def _render_rankings(results: dict):
             )
             for item in news:
                 st.markdown(
-                    f'<div style="background:#161b22;border:1px solid #30363d;border-radius:6px;'
+                    f'<div style="background:#ffffff;border:1px solid #dce3ee;border-radius:6px;'
                     f'padding:8px 12px;margin:3px 0;font-size:0.82rem;">'
-                    f'<a href="{item["link"]}" target="_blank" style="color:#e6edf3;'
+                    f'<a href="{item["link"]}" target="_blank" style="color:#182230;'
                     f'text-decoration:none;">{item["title"]}</a></div>',
                     unsafe_allow_html=True,
                 )

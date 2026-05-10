@@ -93,7 +93,7 @@ def _volume(df: pd.DataFrame) -> list[dict]:
             out.append({
                 "time":  int(ts.timestamp()),
                 "value": int(float(row.get("Volume") or 0)),
-                "color": "rgba(0,212,170,0.5)" if up else "rgba(255,68,68,0.5)",
+                "color": "rgba(15,159,110,0.45)" if up else "rgba(217,45,32,0.45)",
             })
         except Exception:
             pass
@@ -108,7 +108,7 @@ def _macd_hist(hist_series: pd.Series, index) -> list[dict]:
             out.append({
                 "time":  int(ts.timestamp()),
                 "value": round(float(v), 6),
-                "color": "#00d4aa" if v >= 0 else "#ff4444",
+                "color": "#0f9f6e" if v >= 0 else "#d92d20",
             })
         except Exception:
             pass
@@ -137,10 +137,10 @@ def _build_html(payload: dict, height: int) -> str:
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 :root{
-  --bg:#0d1117;--bg2:#161b22;--bg3:#1c2333;
-  --border:#30363d;--text:#e6edf3;--muted:#8b949e;
-  --teal:#00d4aa;--red:#ff4444;--gold:#f0ad4e;
-  --blue:#4d9de0;--purple:#7c57ff;--orange:#ff7f50;
+  --bg:#ffffff;--bg2:#f8fafc;--bg3:#edf6ff;
+  --border:#dce3ee;--text:#182230;--muted:#667085;
+  --teal:#0f9f6e;--red:#d92d20;--gold:#f79009;
+  --blue:#2e90fa;--purple:#7a5af8;--orange:#f97316;
 }
 html,body{background:var(--bg);color:var(--text);
   font-family:'Inter','Segoe UI',monospace,sans-serif;
@@ -163,7 +163,7 @@ html,body{background:var(--bg);color:var(--text);
   border-radius:5px;padding:3px 10px;cursor:pointer;font-size:.72rem;
   transition:all .2s;white-space:nowrap;
 }
-#fs-btn:hover{border-color:var(--teal);color:var(--teal);box-shadow:0 0 6px rgba(0,212,170,.2);}
+#fs-btn:hover{border-color:var(--blue);color:#0052a4;box-shadow:0 0 0 2px rgba(46,144,250,.12);}
 #ind-bar{
   display:flex;align-items:center;gap:5px;flex-wrap:wrap;
   padding:4px 12px;height:36px;min-height:36px;
@@ -178,11 +178,11 @@ html,body{background:var(--bg);color:var(--text);
   color:var(--muted);transition:all .15s;white-space:nowrap;
 }
 .ibtn:hover:not(.on){border-color:var(--muted);color:var(--text);}
-.ibtn.on{background:rgba(0,212,170,.1);border-color:var(--teal);
-  color:var(--teal);box-shadow:0 0 8px rgba(0,212,170,.2);}
+.ibtn.on{background:rgba(46,144,250,.1);border-color:var(--blue);
+  color:#0052a4;box-shadow:0 0 0 2px rgba(46,144,250,.1);}
 .ibtn.e20{color:var(--blue)!important;}
 .ibtn.e20.on{border-color:var(--blue)!important;
-  background:rgba(77,157,224,.1)!important;box-shadow:0 0 8px rgba(77,157,224,.2)!important;}
+  background:rgba(46,144,250,.1)!important;box-shadow:0 0 0 2px rgba(46,144,250,.1)!important;}
 .ibtn.e50{color:var(--gold)!important;}
 .ibtn.e50.on{border-color:var(--gold)!important;
   background:rgba(240,173,78,.1)!important;box-shadow:0 0 8px rgba(240,173,78,.2)!important;}
@@ -191,7 +191,7 @@ html,body{background:var(--bg);color:var(--text);
 .ibtn.s20{color:var(--purple)!important;}
 .ibtn.s20.on{border-color:var(--purple)!important;background:rgba(124,87,255,.1)!important;}
 .ibtn.bb{color:rgba(0,212,170,.8)!important;}
-.ibtn.bb.on{border-color:var(--teal)!important;background:rgba(0,212,170,.08)!important;}
+.ibtn.bb.on{border-color:var(--teal)!important;background:rgba(15,159,110,.08)!important;}
 .ibtn.vw{color:var(--orange)!important;}
 .ibtn.vw.on{border-color:var(--orange)!important;background:rgba(255,127,80,.1)!important;}
 #wrap{display:flex;flex-direction:column;overflow:hidden;}
@@ -201,7 +201,7 @@ html,body{background:var(--bg);color:var(--text);
   position:absolute;top:4px;left:8px;
   font-size:.6rem;color:var(--muted);font-weight:700;
   text-transform:uppercase;letter-spacing:.06em;z-index:9;pointer-events:none;
-  background:rgba(13,17,23,.7);padding:1px 4px;border-radius:3px;
+  background:rgba(255,255,255,.86);padding:1px 4px;border-radius:3px;
 }
 #tf-bar{
   display:flex;align-items:center;gap:3px;
@@ -216,9 +216,9 @@ html,body{background:var(--bg);color:var(--text);
 }
 .tfbtn:hover{color:var(--text);border-color:var(--border);}
 .tfbtn.on{
-  color:var(--teal);border-color:var(--teal);
-  background:rgba(0,212,170,.1);
-  box-shadow:0 0 10px rgba(0,212,170,.25);
+  color:#0052a4;border-color:var(--blue);
+  background:rgba(46,144,250,.1);
+  box-shadow:0 0 0 2px rgba(46,144,250,.1);
 }
 #interval-pill{
   margin-left:auto;font-size:.7rem;color:var(--muted);
@@ -278,17 +278,17 @@ document.getElementById('cma').style.height=H_MACD+'px';
 
 // ── Chart factory ──────────────────────────────────────────────────────────
 const BASE={
-  layout:{background:{type:'solid',color:'#0d1117'},textColor:'#8b949e'},
-  grid:{vertLines:{color:'#21262d'},horzLines:{color:'#21262d'}},
+  layout:{background:{type:'solid',color:'#ffffff'},textColor:'#667085'},
+  grid:{vertLines:{color:'#eef2f6'},horzLines:{color:'#eef2f6'}},
   crosshair:{
     mode:LightweightCharts.CrosshairMode.Normal,
-    vertLine:{color:'#00d4aa55',width:1,style:3,labelBackgroundColor:'#161b22'},
-    horzLine:{color:'#00d4aa55',width:1,style:3,labelBackgroundColor:'#161b22'},
+    vertLine:{color:'#2e90fa66',width:1,style:3,labelBackgroundColor:'#f8fafc'},
+    horzLine:{color:'#2e90fa66',width:1,style:3,labelBackgroundColor:'#f8fafc'},
   },
   handleScale:{axisPressedMouseMove:{time:true,price:true}},
   handleScroll:{mouseWheel:true,pressedMouseMove:true,horzTouchDrag:true},
 };
-const BORDER={borderColor:'#30363d'};
+const BORDER={borderColor:'#dce3ee'};
 const TS_COMMON={...BORDER,timeVisible:true,secondsVisible:false,barSpacing:6,minBarSpacing:0.5};
 
 function mkChart(el,h,showTS){
@@ -306,21 +306,21 @@ const cMacd=mkChart(document.getElementById('cma'), H_MACD, false);
 
 // ── Series — main chart ────────────────────────────────────────────────────
 const sSeries=cMain.addCandlestickSeries({
-  upColor:'#00d4aa',downColor:'#ff4444',
-  borderUpColor:'#00d4aa',borderDownColor:'#ff4444',
-  wickUpColor:'#00d4aa',wickDownColor:'#ff4444',
-  priceLineColor:'#00d4aa88',lastValueVisible:true,
+  upColor:'#0f9f6e',downColor:'#d92d20',
+  borderUpColor:'#0f9f6e',borderDownColor:'#d92d20',
+  wickUpColor:'#0f9f6e',wickDownColor:'#d92d20',
+  priceLineColor:'#0f9f6e88',lastValueVisible:true,
 });
 sSeries.setData(D.candles);
 
-const sE20 =cMain.addLineSeries({color:'#4d9de0',lineWidth:1.5,priceLineVisible:false,lastValueVisible:false});
-const sE50 =cMain.addLineSeries({color:'#f0ad4e',lineWidth:1.5,lineStyle:2,priceLineVisible:false,lastValueVisible:false});
-const sE200=cMain.addLineSeries({color:'#a78bfa',lineWidth:1.2,lineStyle:3,priceLineVisible:false,lastValueVisible:false});
-const sS20 =cMain.addLineSeries({color:'#7c57ff',lineWidth:1.2,priceLineVisible:false,lastValueVisible:false});
-const sBBU =cMain.addLineSeries({color:'rgba(0,212,170,.4)',lineWidth:1,priceLineVisible:false,lastValueVisible:false});
-const sBBM =cMain.addLineSeries({color:'rgba(0,212,170,.2)',lineWidth:1,lineStyle:2,priceLineVisible:false,lastValueVisible:false});
-const sBBL =cMain.addLineSeries({color:'rgba(0,212,170,.4)',lineWidth:1,priceLineVisible:false,lastValueVisible:false});
-const sVWAP=cMain.addLineSeries({color:'#ff7f50',lineWidth:1.5,priceLineVisible:false,lastValueVisible:false});
+const sE20 =cMain.addLineSeries({color:'#2e90fa',lineWidth:1.5,priceLineVisible:false,lastValueVisible:false});
+const sE50 =cMain.addLineSeries({color:'#f79009',lineWidth:1.5,lineStyle:2,priceLineVisible:false,lastValueVisible:false});
+const sE200=cMain.addLineSeries({color:'#7a5af8',lineWidth:1.2,lineStyle:3,priceLineVisible:false,lastValueVisible:false});
+const sS20 =cMain.addLineSeries({color:'#6941c6',lineWidth:1.2,priceLineVisible:false,lastValueVisible:false});
+const sBBU =cMain.addLineSeries({color:'rgba(15,159,110,.45)',lineWidth:1,priceLineVisible:false,lastValueVisible:false});
+const sBBM =cMain.addLineSeries({color:'rgba(15,159,110,.24)',lineWidth:1,lineStyle:2,priceLineVisible:false,lastValueVisible:false});
+const sBBL =cMain.addLineSeries({color:'rgba(15,159,110,.45)',lineWidth:1,priceLineVisible:false,lastValueVisible:false});
+const sVWAP=cMain.addLineSeries({color:'#f97316',lineWidth:1.5,priceLineVisible:false,lastValueVisible:false});
 
 sE20.setData(D.ema20); sE50.setData(D.ema50); sE200.setData(D.ema200); sS20.setData(D.sma20);
 sBBU.setData(D.bbU);   sBBM.setData(D.bbM);   sBBL.setData(D.bbL);
@@ -335,12 +335,12 @@ const sVol=cVol.addHistogramSeries({priceFormat:{type:'volume'},priceScaleId:'vo
 sVol.setData(D.volume);
 
 // ── Series — RSI ───────────────────────────────────────────────────────────
-const sRsi=cRsi.addLineSeries({color:'#00d4aa',lineWidth:1.5,priceLineVisible:false,lastValueVisible:true});
+const sRsi=cRsi.addLineSeries({color:'#0f9f6e',lineWidth:1.5,priceLineVisible:false,lastValueVisible:true});
 sRsi.setData(D.rsi);
 // RSI bands
 if(D.rsi.length>=2){
   const t0=D.rsi[0].time, t1=D.rsi[D.rsi.length-1].time;
-  [[70,'rgba(255,68,68,.35)'],[50,'rgba(139,148,158,.25)'],[30,'rgba(0,212,170,.35)']].forEach(([lvl,clr])=>{
+  [[70,'rgba(217,45,32,.35)'],[50,'rgba(102,112,133,.25)'],[30,'rgba(15,159,110,.35)']].forEach(([lvl,clr])=>{
     const ls=cRsi.addLineSeries({color:clr,lineWidth:1,lineStyle:2,priceLineVisible:false,lastValueVisible:false,crosshairMarkerVisible:false});
     ls.setData([{time:t0,value:lvl},{time:t1,value:lvl}]);
   });
@@ -348,8 +348,8 @@ if(D.rsi.length>=2){
 }
 
 // ── Series — MACD ──────────────────────────────────────────────────────────
-const sMacdLine  =cMacd.addLineSeries({color:'#4d9de0',lineWidth:1.5,priceLineVisible:false,lastValueVisible:false});
-const sMacdSig   =cMacd.addLineSeries({color:'#ff7f50',lineWidth:1.2,priceLineVisible:false,lastValueVisible:false});
+const sMacdLine  =cMacd.addLineSeries({color:'#2e90fa',lineWidth:1.5,priceLineVisible:false,lastValueVisible:false});
+const sMacdSig   =cMacd.addLineSeries({color:'#f97316',lineWidth:1.2,priceLineVisible:false,lastValueVisible:false});
 const sMacdHist  =cMacd.addHistogramSeries({priceScaleId:'macd',lastValueVisible:false});
 sMacdLine.setData(D.macd); sMacdSig.setData(D.signal); sMacdHist.setData(D.macdHist);
 document.getElementById('pane-macd').style.display='none'; // hidden by default
@@ -362,21 +362,21 @@ document.getElementById('interval-pill').textContent='⏱ '+D.interval;
 const chgBadge=document.getElementById('chg-badge');
 const chgPct=D.changePct||0;
 chgBadge.textContent=(chgPct>=0?'▲':'▼')+' '+Math.abs(chgPct).toFixed(2)+'%';
-chgBadge.style.color=chgPct>=0?'#00d4aa':'#ff4444';
-chgBadge.style.background=chgPct>=0?'rgba(0,212,170,.1)':'rgba(255,68,68,.1)';
-chgBadge.style.border='1px solid '+(chgPct>=0?'rgba(0,212,170,.3)':'rgba(255,68,68,.3)');
+chgBadge.style.color=chgPct>=0?'#0f9f6e':'#d92d20';
+chgBadge.style.background=chgPct>=0?'rgba(15,159,110,.1)':'rgba(217,45,32,.1)';
+chgBadge.style.border='1px solid '+(chgPct>=0?'rgba(15,159,110,.3)':'rgba(217,45,32,.3)');
 
 // ── Crosshair OHLC tooltip ─────────────────────────────────────────────────
 cMain.subscribeCrosshairMove(param=>{
   const bar=param.seriesData&&param.seriesData.get(sSeries);
   if(!bar){document.getElementById('ohlc').innerHTML='O:&mdash; H:&mdash; L:&mdash; C:&mdash;';return;}
   const up=bar.close>=bar.open;
-  const c=up?'#00d4aa':'#ff4444';
+  const c=up?'#0f9f6e':'#d92d20';
   document.getElementById('ohlc').innerHTML=
-    `<span style="color:#8b949e">O:</span><span style="color:${c}"> ${bar.open.toFixed(2)} </span>`+
-    `<span style="color:#8b949e">H:</span><span style="color:#00d4aa"> ${bar.high.toFixed(2)} </span>`+
-    `<span style="color:#8b949e">L:</span><span style="color:#ff4444"> ${bar.low.toFixed(2)} </span>`+
-    `<span style="color:#8b949e">C:</span><span style="color:${c};font-weight:700"> ${bar.close.toFixed(2)}</span>`;
+    `<span style="color:#667085">O:</span><span style="color:${c}"> ${bar.open.toFixed(2)} </span>`+
+    `<span style="color:#667085">H:</span><span style="color:#0f9f6e"> ${bar.high.toFixed(2)} </span>`+
+    `<span style="color:#667085">L:</span><span style="color:#d92d20"> ${bar.low.toFixed(2)} </span>`+
+    `<span style="color:#667085">C:</span><span style="color:${c};font-weight:700"> ${bar.close.toFixed(2)}</span>`;
 });
 
 // ── Lookup maps for crosshair sync ─────────────────────────────────────────
@@ -528,10 +528,10 @@ def render_chart_controls(symbol: str = "") -> str:
             "1d": "up to 5 years",
         }
         st.markdown(
-            f'<div style="padding:6px 0;color:#8b949e;font-size:0.78rem;">'
-            f'Candle: <b style="color:#00d4aa">{sel_label}</b>'
-            f'&nbsp;·&nbsp; Data: <b style="color:#e6edf3">{data_avail[interval]}</b>'
-            f'&nbsp;·&nbsp; Use timeframe buttons <b style="color:#e6edf3">below</b> the chart to pan history'
+            f'<div style="padding:6px 0;color:#667085;font-size:0.78rem;">'
+            f'Candle: <b style="color:#0052a4">{sel_label}</b>'
+            f'&nbsp;·&nbsp; Data: <b style="color:#182230">{data_avail[interval]}</b>'
+            f'&nbsp;·&nbsp; Use timeframe buttons <b style="color:#182230">below</b> the chart to pan history'
             f'</div>',
             unsafe_allow_html=True,
         )

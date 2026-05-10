@@ -1,5 +1,5 @@
 """
-Plotly chart components with dark trading terminal theme.
+Plotly chart components with a light fintech trading terminal theme.
 """
 
 import plotly.graph_objects as go
@@ -17,16 +17,16 @@ def _hex_to_rgba(hex_color: str, alpha: float) -> str:
 
 
 _LAYOUT_BASE = dict(
-    paper_bgcolor="#0d1117",
-    plot_bgcolor="#0d1117",
-    font=dict(color="#8b949e", size=11),
+    paper_bgcolor="#ffffff",
+    plot_bgcolor="#ffffff",
+    font=dict(color="#667085", size=11),
     margin=dict(l=8, r=8, t=28, b=8),
     showlegend=False,
 )
 
-_GRID = dict(gridcolor="#21262d", zerolinecolor="#30363d")
-_XAXIS = dict(showgrid=False, color="#8b949e", linecolor="#30363d")
-_YAXIS = dict(**_GRID, color="#8b949e", linecolor="#30363d")
+_GRID = dict(gridcolor="#eef2f6", zerolinecolor="#dce3ee")
+_XAXIS = dict(showgrid=False, color="#667085", linecolor="#dce3ee")
+_YAXIS = dict(**_GRID, color="#667085", linecolor="#dce3ee")
 
 
 def mini_sparkline(history: pd.DataFrame, positive: bool = True) -> go.Figure:
@@ -67,7 +67,7 @@ def index_line_chart(history: pd.DataFrame, title: str, positive: bool = True) -
         ))
     fig.update_layout(
         **_LAYOUT_BASE,
-        title=dict(text=title, font=dict(size=12, color="#e6edf3"), x=0),
+        title=dict(text=title, font=dict(size=12, color="#182230"), x=0),
         height=180,
         xaxis=dict(**_XAXIS, tickformat="%d %b"),
         yaxis=dict(**_YAXIS),
@@ -99,7 +99,7 @@ def candlestick_chart(df: pd.DataFrame, title: str = "") -> go.Figure:
     ))
     fig.update_layout(
         **_LAYOUT_BASE,
-        title=dict(text=title, font=dict(size=13, color="#e6edf3"), x=0),
+        title=dict(text=title, font=dict(size=13, color="#182230"), x=0),
         height=350,
         xaxis=dict(**_XAXIS, rangeslider=dict(visible=False)),
         yaxis=dict(**_YAXIS, title="Price (₹)"),
@@ -132,12 +132,12 @@ def heatmap_chart(data: List[Dict], value_col: str = "pct_change", label_col: st
         marker=dict(
             colors=df[value_col].tolist(),
             colorscale=[
-                [0.0, "#7f0000"],
-                [0.25, "#cc2222"],
-                [0.45, "#1a1a1a"],
-                [0.55, "#1a1a1a"],
-                [0.75, "#00aa88"],
-                [1.0, "#005544"],
+                [0.0, "#b42318"],
+                [0.25, "#f04438"],
+                [0.45, "#f2f4f7"],
+                [0.55, "#f2f4f7"],
+                [0.75, "#12b76a"],
+                [1.0, "#067647"],
             ],
             cmid=0,
             showscale=False,
@@ -157,14 +157,14 @@ def rsi_gauge(rsi: float) -> go.Figure:
         value=rsi,
         number=dict(font=dict(color=color, size=20)),
         gauge=dict(
-            axis=dict(range=[0, 100], tickcolor="#30363d", tickfont=dict(color="#8b949e", size=9)),
+            axis=dict(range=[0, 100], tickcolor="#dce3ee", tickfont=dict(color="#667085", size=9)),
             bar=dict(color=color, thickness=0.3),
-            bgcolor="#161b22",
-            bordercolor="#30363d",
+            bgcolor="#f8fafc",
+            bordercolor="#dce3ee",
             steps=[
-                dict(range=[0, 30], color="rgba(255,68,68,0.13)"),
-                dict(range=[30, 70], color="#1a1a1a"),
-                dict(range=[70, 100], color="rgba(0,212,170,0.13)"),
+                dict(range=[0, 30], color="rgba(217,45,32,0.10)"),
+                dict(range=[30, 70], color="#f2f4f7"),
+                dict(range=[70, 100], color="rgba(15,159,110,0.10)"),
             ],
             threshold=dict(line=dict(color=color, width=2), thickness=0.75, value=rsi),
         ),
@@ -197,6 +197,6 @@ def momentum_bar_chart(data: List[Dict]) -> go.Figure:
         height=max(250, len(df) * 22),
         xaxis=dict(**_XAXIS, range=[0, 100], title="Momentum Score"),
         yaxis=dict(**_YAXIS),
-        title=dict(text="Momentum Rankings", font=dict(size=12, color="#e6edf3"), x=0),
+        title=dict(text="Momentum Rankings", font=dict(size=12, color="#182230"), x=0),
     )
     return fig

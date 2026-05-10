@@ -619,21 +619,6 @@ section[data-testid="stSidebar"] {
     transition: background 0.15s;
 }
 
-/* ---- Analyze buttons (small ↗ buttons) ---- */
-button[kind="secondary"] {
-    padding: 2px 6px !important;
-    font-size: 0.78rem !important;
-    min-height: 28px !important;
-}
-
-/* ---- Scan analyze buttons ---- */
-[data-testid="stButton"] button:has-text("↗ Analyze") {
-    background: #00d4aa18 !important;
-    border-color: #00d4aa44 !important;
-    color: #00d4aa !important;
-    font-size: 0.8rem !important;
-}
-
 /* ---- Search selectbox ---- */
 div[data-testid="stSelectbox"] > div > div {
     background: #161b22 !important;
@@ -778,4 +763,297 @@ div[data-testid="stSelectbox"] > div > div:focus-within {
     color: #8b949e;
     font-size: 0.78rem;
     margin-bottom: 4px;
+}
+
+/* ======================================================
+   Paytm Money inspired light fintech shell overrides
+   ====================================================== */
+html, body, .stApp {
+    background-color: #f5f7fb !important;
+    color: #1f2937 !important;
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+.block-container {
+    padding-top: 0.75rem !important;
+    max-width: 1440px !important;
+}
+
+.paytm-top-shell,
+.app-header-v2 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    background: #ffffff;
+    border: 1px solid #dce3ee;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.app-title-v2 {
+    color: #182230;
+    font-size: 1.18rem;
+    font-weight: 800;
+}
+
+.brand-accent { color: #0052a4; }
+.app-sub-v2 { color: #667085; font-size: 0.74rem; }
+.header-separator { color: #d0d5dd; }
+
+.market-chip {
+    background: #f8fafc;
+    border: 1px solid #e4e7ec;
+    border-radius: 7px;
+    padding: 6px 10px;
+    min-width: 102px;
+}
+.market-chip-label,
+.market-chip-time { color: #182230; }
+.market-chip-tz,
+.market-chip-status { color: #667085; }
+
+.ticker-outer {
+    background: #ffffff;
+    border: 1px solid #e4e7ec;
+    border-radius: 7px;
+    padding: 5px 0;
+    margin-bottom: 8px;
+}
+.ticker-item .ticker-name,
+.news-banner-text,
+.news-banner-label { color: #667085; }
+.ticker-item .ticker-price { color: #182230; }
+.ticker-item .ticker-up { color: #0f9f6e; }
+.ticker-item .ticker-down { color: #d92d20; }
+
+.news-banner-outer {
+    background: #fff8ed;
+    border-color: #fedf89;
+    border-left-color: #f79009;
+}
+.news-banner-label {
+    background: #f79009;
+    color: #ffffff;
+}
+
+.top-nav-band {
+    background: #ffffff;
+    border: 1px solid #dce3ee;
+    border-radius: 8px;
+    padding: 6px;
+    margin: 8px 0 14px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.top-nav-band [data-testid="stButton"] button {
+    min-height: 34px !important;
+    padding: 4px 8px !important;
+    background: #ffffff !important;
+    border: 1px solid transparent !important;
+    color: #344054 !important;
+    border-radius: 6px !important;
+    font-size: 0.78rem !important;
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+}
+.top-nav-band [data-testid="stButton"] button:hover {
+    background: #edf6ff !important;
+    border-color: #b8ddff !important;
+    color: #0052a4 !important;
+}
+
+section[data-testid="stSidebar"] {
+    background: #0b1726 !important;
+    border-right: 1px solid #12233a;
+}
+section[data-testid="stSidebar"] * {
+    color: #e8eef7;
+}
+.side-nav-title {
+    color: #98a2b3;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 8px 0 6px;
+}
+.side-nav-item {
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-bottom: 5px;
+    color: #cbd5e1;
+    font-size: 0.83rem;
+    font-weight: 700;
+}
+.side-nav-item.active,
+.side-nav-item:hover {
+    background: #163253;
+    color: #ffffff;
+}
+
+.watchlist-title,
+.wl-panel-title,
+.strat-title,
+.section-title,
+.idx-name,
+.stock-full-name,
+.stock-price-large,
+.tech-chip-val,
+.kpi-value,
+.sent-val,
+.orderbook-title,
+.sentiment-panel-title,
+.signal-ticker,
+.csc-sym {
+    color: #182230 !important;
+}
+section[data-testid="stSidebar"] .watchlist-title,
+section[data-testid="stSidebar"] .watchlist-symbol {
+    color: #ffffff !important;
+}
+.watchlist-subtitle,
+.watchlist-name,
+.wl-section-label,
+.wl-stock-name,
+.strat-section-lbl,
+.tech-chip-label,
+.kpi-label,
+.sent-label,
+.perf-mini-title,
+.orderbook-label,
+.csc-price,
+.refresh-info {
+    color: #667085 !important;
+}
+section[data-testid="stSidebar"] .watchlist-subtitle,
+section[data-testid="stSidebar"] .watchlist-name {
+    color: #98a2b3 !important;
+}
+
+.metric-card,
+.filter-bar,
+.stock-header-card,
+.tech-chip,
+.kpi-card,
+.perf-mini-card,
+.sentiment-card,
+.orderbook-card,
+.signal-card,
+.compact-signal-card,
+.news-item-card,
+.wl-stock-card,
+.wl-stock-card-active {
+    background: #ffffff !important;
+    border-color: #dce3ee !important;
+    border-radius: 8px !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.watchlist-row,
+.watchlist-row-active {
+    background: #12233a !important;
+    border-color: #243b5a !important;
+    border-radius: 7px !important;
+}
+.watchlist-row-active {
+    border-color: #2e90fa !important;
+    background: #17395f !important;
+}
+
+.wl-stock-card:hover,
+.compact-signal-card:hover,
+.signal-card:hover {
+    border-color: #84caff !important;
+}
+.wl-stock-card-active {
+    background: #edf6ff !important;
+    border-color: #2e90fa !important;
+}
+.wl-stock-sym,
+.wl-stock-price,
+.idx-price,
+.metric-value,
+.stock-symbol-badge {
+    color: #182230 !important;
+}
+
+.section-header {
+    border-bottom: 1px solid #e4e7ec;
+}
+.section-badge,
+.stock-symbol-badge {
+    background: #edf6ff !important;
+    border-color: #b8ddff !important;
+    color: #0052a4 !important;
+}
+.sh-chip {
+    background: #f8fafc !important;
+    border-color: #e4e7ec !important;
+    color: #475467 !important;
+}
+
+.stButton > button {
+    background: #ffffff !important;
+    border: 1px solid #d0d5dd !important;
+    color: #344054 !important;
+    border-radius: 6px !important;
+    font-weight: 700 !important;
+    min-height: 32px !important;
+}
+.stButton > button:hover {
+    background: #edf6ff !important;
+    border-color: #2e90fa !important;
+    color: #0052a4 !important;
+}
+section[data-testid="stSidebar"] .stButton > button {
+    background: #12233a !important;
+    border-color: #243b5a !important;
+    color: #e8eef7 !important;
+}
+section[data-testid="stSidebar"] .stButton > button:hover {
+    background: #17395f !important;
+    border-color: #2e90fa !important;
+    color: #ffffff !important;
+}
+
+div[data-testid="stSelectbox"] > div > div,
+div[data-testid="stTextInput"] input,
+div[data-testid="stNumberInput"] input,
+textarea {
+    background: #ffffff !important;
+    border-color: #d0d5dd !important;
+    color: #182230 !important;
+    border-radius: 7px !important;
+}
+section[data-testid="stSidebar"] div[data-testid="stTextInput"] input,
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] > div > div {
+    background: #12233a !important;
+    border-color: #243b5a !important;
+    color: #ffffff !important;
+}
+
+.stDataFrame {
+    border: 1px solid #dce3ee !important;
+    border-radius: 8px;
+}
+.stDataFrame thead th {
+    background: #f8fafc !important;
+    color: #475467 !important;
+}
+.stDataFrame tbody tr:hover { background: #edf6ff !important; }
+
+hr { border-color: #e4e7ec !important; }
+::-webkit-scrollbar-track { background: #f5f7fb; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; }
+
+@media (max-width: 1100px) {
+    .market-hours-row { width: 100%; }
+    .market-chip { flex: 1 1 145px; }
+    .top-nav-band [data-testid="stButton"] button {
+        font-size: 0.72rem !important;
+        padding-inline: 4px !important;
+    }
 }
