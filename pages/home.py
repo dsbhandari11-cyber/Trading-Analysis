@@ -138,7 +138,7 @@ def _build_index_chart(hist: pd.DataFrame) -> go.Figure:
         name="Volume", showlegend=False,
     ), row=2, col=1)
 
-    ax = dict(gridcolor="#21262d", color="#8b949e", linecolor="#30363d", showgrid=True)
+    ax = dict(gridcolor="#21262d", color="#8b949e", linecolor="#30363d")
     fig.update_layout(
         paper_bgcolor="#0d1117",
         plot_bgcolor="#0d1117",
@@ -152,7 +152,7 @@ def _build_index_chart(hist: pd.DataFrame) -> go.Figure:
             orientation="h", x=0, y=1.04,
         ),
         xaxis=dict(**ax, showgrid=False, rangeslider=dict(visible=False)),
-        yaxis=dict(**ax),
+        yaxis=dict(**ax, showgrid=True),
         xaxis2=dict(**ax, showgrid=False),
         yaxis2=dict(**ax, showgrid=False),
     )

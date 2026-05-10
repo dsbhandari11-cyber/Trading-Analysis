@@ -191,7 +191,7 @@ def _render_signal_cards(signals: list, signal_type: str):
             st.markdown(card_html, unsafe_allow_html=True)
             if st.button(
                 f"↗ Analyze {sig['symbol'].replace('.NS','')}",
-                key=f"scan_analyze_{sig['symbol']}_{i}",
+                key=f"scan_analyze_{signal_type}_{sig['symbol']}_{i}",
                 use_container_width=True,
             ):
                 st.session_state.selected_stock = sig["symbol"]

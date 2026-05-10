@@ -305,200 +305,23 @@ def render_stock_detail(symbol: str):
 # ─── Tab 1: Chart & Technicals ───────────────────────────────────────────────
 
 def _render_chart_tab(symbol: str, info: dict):
-    PERIOD_MAP = {
-        "1D": ("1d", "5m"),
-        "5D": ("5d", "15m"),
-        "1M": ("1mo", "1d"),
-        "3M": ("3mo", "1d"),
-        "6M": ("6mo", "1d"),
-        "1Y": ("1y", "1d"),
-        "5Y": ("5y", "1wk"),
-    }
+    from components.advanced_chart import render_chart_controls, render_advanced_chart
 
-    ctrl1, ctrl2, ctrl3, ctrl4 = st.columns([1.2, 1.4, 2.3, 1.1])
-    with ctrl1:
-        period_label = st.selectbox(
-            "Timeframe", list(PERIOD_MAP.keys()), index=3,
-            key="detail_period", label_visibility="collapsed",
-        )
-    with ctrl2:
-        chart_type = st.selectbox(
-            "Chart", ["Candlestick", "Line"],
-            key="detail_chart_type", label_visibility="collapsed",
-        )
-    with ctrl3:
-        overlays = st.multiselect(
-            "Overlays",
-            ["SMA", "EMA", "VWAP", "Bollinger Bands"],
-            default=["SMA", "EMA"],
-            key="detail_overlays",
-            label_visibility="collapsed",
-        )
-    with ctrl4:
-        pass  # Live updates handled by global st_autorefresh in main.py
+    # Candle interval selector (controls yfinance fetch interval)
+    interval = render_chart_controls(symbol)
 
-    period, interval = PERIOD_MAP[period_label]
-    hist = get_history(symbol, period=period, interval=interval)
+    # Advanced TradingView Lightweight Charts component
+    render_advanced_chart(symbol, interval=interval, height=620)
 
+    # ── Technicals summary — always use 3M daily data (cached, reliable) ────
+    hist = get_history(symbol, period="3mo", interval="1d")
     if hist is None or hist.empty:
-        st.warning("No chart data available for the selected period.")
         return
 
-    sma20 = hist["Close"].rolling(20, min_periods=1).mean()
-    sma50 = hist["Close"].rolling(50, min_periods=1).mean()
+    rsi_s = _calc_rsi(hist)
     ema20 = hist["Close"].ewm(span=20, adjust=False).mean()
     ema50 = hist["Close"].ewm(span=50, adjust=False).mean()
-    rsi_s = _calc_rsi(hist)
-    typical_price = (hist["High"] + hist["Low"] + hist["Close"]) / 3
-    vwap = (typical_price * hist["Volume"]).cumsum() / hist["Volume"].replace(0, np.nan).cumsum()
 
-    bb_mid = hist["Close"].rolling(20).mean()
-    bb_std = hist["Close"].rolling(20).std()
-    bb_up  = bb_mid + 2 * bb_std
-    bb_low = bb_mid - 2 * bb_std
-
-    fig = make_subplots(
-        rows=3, cols=1,
-        shared_xaxes=True,
-        row_heights=[0.60, 0.20, 0.20],
-        vertical_spacing=0.04,
-    )
-
-    if chart_type == "Candlestick":
-        fig.add_trace(go.Candlestick(
-            x=hist.index,
-            open=hist["Open"], high=hist["High"],
-            low=hist["Low"],   close=hist["Close"],
-            increasing_line_color=COLORS["positive"],
-            decreasing_line_color=COLORS["negative"],
-            name="OHLC", showlegend=False,
-        ), row=1, col=1)
-    else:
-        pos = hist["Close"].iloc[-1] >= hist["Close"].iloc[0]
-        fig.add_trace(go.Scatter(
-            x=hist.index, y=hist["Close"],
-            mode="lines",
-            line=dict(color=COLORS["positive"] if pos else COLORS["negative"], width=2),
-            fill="tozeroy",
-            fillcolor="rgba(0,212,170,0.06)" if pos else "rgba(255,68,68,0.06)",
-            name="Price", showlegend=False,
-        ), row=1, col=1)
-
-    if "SMA" in overlays:
-        fig.add_trace(go.Scatter(
-            x=hist.index, y=sma20,
-            mode="lines", line=dict(color="#4ea1ff", width=1.2),
-            name="SMA 20",
-        ), row=1, col=1)
-        fig.add_trace(go.Scatter(
-            x=hist.index, y=sma50,
-            mode="lines", line=dict(color="#6c7a89", width=1.1),
-            name="SMA 50",
-        ), row=1, col=1)
-
-    if "EMA" in overlays:
-        fig.add_trace(go.Scatter(
-            x=hist.index, y=ema20,
-            mode="lines", line=dict(color="#f0ad4e", width=1.2, dash="dot"),
-            name="EMA 20",
-        ), row=1, col=1)
-        fig.add_trace(go.Scatter(
-            x=hist.index, y=ema50,
-            mode="lines", line=dict(color="#7c57ff", width=1.2, dash="dot"),
-            name="EMA 50",
-        ), row=1, col=1)
-
-    if "VWAP" in overlays and vwap.notna().any():
-        fig.add_trace(go.Scatter(
-            x=hist.index, y=vwap,
-            mode="lines", line=dict(color="#ff7f50", width=1.4),
-            name="VWAP",
-        ), row=1, col=1)
-
-    if "Bollinger Bands" in overlays:
-        fig.add_trace(go.Scatter(
-            x=list(hist.index) + list(hist.index[::-1]),
-            y=list(bb_up) + list(bb_low[::-1]),
-            fill="toself",
-            fillcolor="rgba(0,212,170,0.05)",
-            line=dict(color="rgba(0,0,0,0)"),
-            name="BB Band", showlegend=True,
-        ), row=1, col=1)
-        fig.add_trace(go.Scatter(
-            x=hist.index, y=bb_up,
-            mode="lines", line=dict(color="rgba(0,212,170,0.27)", width=1),
-            name="BB Upper", showlegend=False,
-        ), row=1, col=1)
-        fig.add_trace(go.Scatter(
-            x=hist.index, y=bb_low,
-            mode="lines", line=dict(color="rgba(0,212,170,0.27)", width=1),
-            name="BB Lower", showlegend=False,
-        ), row=1, col=1)
-
-    vol_colors = [
-        COLORS["positive"] if c >= o else COLORS["negative"]
-        for c, o in zip(hist["Close"], hist["Open"])
-    ]
-    fig.add_trace(go.Bar(
-        x=hist.index, y=hist["Volume"],
-        marker_color=vol_colors, opacity=0.65,
-        name="Volume", showlegend=False,
-    ), row=2, col=1)
-
-    if rsi_s is not None and len(rsi_s) > 0:
-        fig.add_trace(go.Scatter(
-            x=hist.index, y=rsi_s,
-            mode="lines", line=dict(color="#00d4aa", width=1.5),
-            name="RSI(14)", showlegend=False,
-        ), row=3, col=1)
-        for level, color in [(70, "rgba(255,68,68,0.47)"), (50, "rgba(139,148,158,0.33)"), (30, "rgba(0,212,170,0.47)")]:
-            fig.add_shape(
-                type="line", x0=hist.index[0], x1=hist.index[-1],
-                y0=level, y1=level,
-                line=dict(color=color, width=1, dash="dash"),
-                row=3, col=1,
-            )
-
-    _GRID  = dict(gridcolor="#21262d", zerolinecolor="#30363d")
-    _XAXIS = dict(showgrid=False, color="#8b949e", linecolor="#30363d")
-
-    fig.update_layout(
-        paper_bgcolor="#0d1117", plot_bgcolor="#0d1117",
-        font=dict(color="#8b949e", size=11),
-        height=580,
-        margin=dict(l=8, r=8, t=16, b=8),
-        showlegend=True,
-        legend=dict(
-            bgcolor="#1c2333", bordercolor="#30363d", borderwidth=1,
-            font=dict(color="#8b949e", size=10),
-            orientation="h", x=0, y=1.04,
-        ),
-        dragmode="pan",
-        modebar=dict(bgcolor="#161b22", color="#8b949e", activecolor="#00d4aa"),
-        xaxis=dict(**_XAXIS, rangeslider=dict(visible=True, thickness=0.05)),
-        yaxis=dict(**_GRID, color="#8b949e", linecolor="#30363d", title="Price (₹)"),
-        xaxis2=dict(**_XAXIS),
-        yaxis2=dict(**_GRID, color="#8b949e", linecolor="#30363d", title="Vol"),
-        xaxis3=dict(**_XAXIS),
-        yaxis3=dict(**_GRID, color="#8b949e", linecolor="#30363d",
-                    range=[0, 100], title="RSI"),
-    )
-    st.plotly_chart(
-        fig,
-        use_container_width=True,
-        config={
-            "scrollZoom": True,
-            "displaylogo": False,
-            "modeBarButtonsToAdd": [
-                "drawline",
-                "drawopenpath",
-                "drawrect",
-                "eraseshape",
-            ],
-        },
-    )
-
-    # ── Technicals summary chips ─────────────────────────────────────────────
     if rsi_s is not None and len(rsi_s) > 0:
         rsi_now   = _safe_float(rsi_s.iloc[-1])
         ema20_now = _safe_float(ema20.iloc[-1])
@@ -508,7 +331,7 @@ def _render_chart_tab(symbol: str, info: dict):
         if "Volume" in hist.columns and len(hist) >= 20:
             avg_vol = hist["Volume"].iloc[-20:].mean()
             if avg_vol:
-                vol_ratio = hist["Volume"].iloc[-1] / avg_vol
+                vol_ratio = float(hist["Volume"].iloc[-1]) / float(avg_vol)
 
         rsi_clr   = rsi_color(rsi_now)
         rsi_lbl   = "Overbought" if rsi_now >= 70 else ("Oversold" if rsi_now <= 30 else "Neutral")
@@ -519,17 +342,16 @@ def _render_chart_tab(symbol: str, info: dict):
         vol_lbl   = f"{vol_ratio:.1f}x avg vol" if vol_ratio else "N/A"
         vol_clr   = COLORS["positive"] if vol_ratio >= 1.5 else COLORS["text_muted"]
 
-        # Trend signal
         bullish_signals = sum([
             c_price > ema20_now,
             c_price > ema50_now,
-            rsi_now < 70 and rsi_now > 40,
+            40 < rsi_now < 70,
             vol_ratio >= 1.0,
         ])
         trend_lbl = "Bullish" if bullish_signals >= 3 else ("Bearish" if bullish_signals <= 1 else "Neutral")
-        trend_clr = COLORS["positive"] if trend_lbl == "Bullish" else (
-            COLORS["negative"] if trend_lbl == "Bearish" else COLORS["warning"]
-        )
+        trend_clr = (COLORS["positive"] if trend_lbl == "Bullish"
+                     else COLORS["negative"] if trend_lbl == "Bearish"
+                     else COLORS["warning"])
 
         st.markdown(f"""
         <div class="tech-summary-row">
@@ -558,7 +380,6 @@ def _render_chart_tab(symbol: str, info: dict):
         </div>
         """, unsafe_allow_html=True)
 
-        # ── Buy/Sell Pressure ─────────────────────────────────────────────────
         st.markdown("---")
         _render_market_sentiment(info, hist)
 
