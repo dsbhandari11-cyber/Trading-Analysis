@@ -364,6 +364,35 @@ div[data-testid="stMetricDelta"] svg { display: none; }
     color: #00d4aa !important;
 }
 
+/* ---- Stock Detail Tabs ---- */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 4px;
+    border-bottom: 1px solid #21262d !important;
+}
+.stTabs [data-baseweb="tab"] {
+    color: #58a6ff !important;
+    font-weight: 600;
+    font-size: 0.87rem;
+    letter-spacing: 0.02em;
+    background: transparent !important;
+    border-radius: 6px 6px 0 0;
+}
+.stTabs [data-baseweb="tab"]:hover {
+    color: #a5c8ff !important;
+    background: #1c2333 !important;
+}
+.stTabs [aria-selected="true"] {
+    color: #e6edf3 !important;
+    background: #161b22 !important;
+}
+.stTabs [data-baseweb="tab-highlight"] {
+    background-color: #00d4aa !important;
+    height: 2px !important;
+}
+.stTabs [data-baseweb="tab-border"] {
+    background-color: #21262d !important;
+}
+
 /* Divider */
 hr { border-color: #21262d !important; }
 

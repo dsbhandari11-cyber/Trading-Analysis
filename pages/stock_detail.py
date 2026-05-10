@@ -307,11 +307,30 @@ def render_stock_detail(symbol: str):
 def _render_chart_tab(symbol: str, info: dict):
     from components.advanced_chart import render_chart_controls, render_advanced_chart
 
-    # Candle interval selector (controls yfinance fetch interval)
-    interval = render_chart_controls(symbol)
+    mtf_mode = st.toggle(
+        "Multi-Timeframe Analysis",
+        value=False,
+        key=f"mtf_mode_{symbol}",
+    )
 
-    # Advanced TradingView Lightweight Charts component
-    render_advanced_chart(symbol, interval=interval, height=620)
+    if mtf_mode:
+        st.markdown(
+            '<div style="color:#8b949e;font-size:0.8rem;margin:-6px 0 10px 0;">'
+            'Simultaneously viewing 1 min · 5 min · 15 min candles &nbsp;|&nbsp; '
+            '<span style="color:#f0ad4e;">10 sec &amp; 30 sec require a real-time data feed '
+            '(yfinance min = 1 min)</span></div>',
+            unsafe_allow_html=True,
+        )
+        for tf, label in [("1m", "1 Min — Scalp / Entry"), ("5m", "5 Min — Intraday"), ("15m", "15 Min — Trend")]:
+            st.markdown(
+                f'<div style="color:#58a6ff;font-size:0.82rem;font-weight:700;'
+                f'margin:10px 0 2px 0;letter-spacing:0.04em;">▸ {label}</div>',
+                unsafe_allow_html=True,
+            )
+            render_advanced_chart(symbol, interval=tf, height=340)
+    else:
+        interval = render_chart_controls(symbol)
+        render_advanced_chart(symbol, interval=interval, height=620)
 
     # ── Technicals summary — always use 3M daily data (cached, reliable) ────
     hist = get_history(symbol, period="3mo", interval="1d")

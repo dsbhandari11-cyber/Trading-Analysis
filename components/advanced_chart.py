@@ -14,7 +14,10 @@ import numpy as np
 from data.fetcher import get_history
 
 # Interval → (yfinance interval, fetch period)
+# Note: yfinance minimum granularity is 1m; sub-minute keys fall back to 1m.
 _INTERVAL_MAP: dict[str, tuple[str, str]] = {
+    "10s": ("1m",  "5d"),
+    "30s": ("1m",  "5d"),
     "1m":  ("1m",  "5d"),
     "5m":  ("5m",  "60d"),
     "15m": ("15m", "60d"),
@@ -22,6 +25,8 @@ _INTERVAL_MAP: dict[str, tuple[str, str]] = {
     "1h":  ("1h",  "2y"),
     "1d":  ("1d",  "5y"),
 }
+
+_SUB_MINUTE = {"10s", "30s"}
 
 
 # ── Indicator computation ────────────────────────────────────────────────────
@@ -502,15 +507,25 @@ setTF('1D');
 # ── Public API ───────────────────────────────────────────────────────────────
 
 def render_chart_controls(symbol: str = "") -> str:
-    """Interval selector rendered above the chart. Returns selected yfinance interval string."""
-    options = ["1m", "5m", "15m", "30m", "1h", "1d"]
-    labels  = ["1 min", "5 min", "15 min", "30 min", "1 hour", "Daily"]
+    """Multi-timeframe interval selector. Returns selected interval key."""
+    labels  = ["10 sec", "30 sec", "1 min", "5 min", "15 min", "30 min", "1 hour", "Daily"]
+    options = ["10s",    "30s",    "1m",    "5m",    "15m",    "30m",    "1h",     "1d"]
     label_map = dict(zip(labels, options))
+    data_avail = {
+        "10s": "real-time feed needed · showing 1 min",
+        "30s": "real-time feed needed · showing 1 min",
+        "1m":  "up to 5 days",
+        "5m":  "up to 60 days",
+        "15m": "up to 60 days",
+        "30m": "up to 60 days",
+        "1h":  "up to 2 years",
+        "1d":  "up to 5 years",
+    }
 
-    c1, c2 = st.columns([2.2, 5])
+    c1, c2 = st.columns([2.8, 5])
     with c1:
         sel_label = st.select_slider(
-            "Candle interval",
+            "Timeframe",
             options=labels,
             value="5 min",
             key=f"adv_interval_{symbol}",
@@ -518,20 +533,13 @@ def render_chart_controls(symbol: str = "") -> str:
         )
     with c2:
         interval = label_map[sel_label]
-        yf_iv, period = _INTERVAL_MAP[interval]
-        data_avail = {
-            "1m": "up to 5 days",
-            "5m": "up to 60 days",
-            "15m": "up to 60 days",
-            "30m": "up to 60 days",
-            "1h": "up to 2 years",
-            "1d": "up to 5 years",
-        }
+        is_sub = interval in _SUB_MINUTE
+        avail_color = "#f0ad4e" if is_sub else "#58a6ff"
+        prefix = "⚠ " if is_sub else ""
         st.markdown(
             f'<div style="padding:6px 0;color:#667085;font-size:0.78rem;">'
-            f'Candle: <b style="color:#0052a4">{sel_label}</b>'
-            f'&nbsp;·&nbsp; Data: <b style="color:#182230">{data_avail[interval]}</b>'
-            f'&nbsp;·&nbsp; Use timeframe buttons <b style="color:#182230">below</b> the chart to pan history'
+            f'Candle: <b style="color:#58a6ff">{sel_label}</b>'
+            f'&nbsp;·&nbsp; Data: <b style="color:{avail_color}">{prefix}{data_avail[interval]}</b>'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -550,7 +558,7 @@ def _fetch_and_compute(symbol: str, interval: str) -> dict | None:
 
     bb_u, bb_m, bb_l = _bollinger(close)
     macd_l, macd_s, macd_h = _macd(close)
-    is_intraday = interval in ("1m", "5m", "15m", "30m", "1h")
+    is_intraday = yf_iv in ("1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h")
     vwap_data = _line(_vwap(df), df.index) if is_intraday else []
 
     last_price = float(close.iloc[-1])
