@@ -4,7 +4,6 @@ Entry point — run with:  python -m streamlit run main.py
 """
 
 import sys
-import os
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent
@@ -18,7 +17,7 @@ st.set_page_config(
     page_title="Bhandari Trading Analysis",
     page_icon="📈",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
     menu_items={
         "Get Help": None,
         "Report a bug": None,
@@ -37,8 +36,8 @@ _load_css()
 # ── Auto-refresh: reruns without resetting session_state ─────────────────────
 try:
     from streamlit_autorefresh import st_autorefresh
-    _REFRESH_MS = int(os.getenv("REFRESH_INTERVAL", 60)) * 1000
-    st_autorefresh(interval=_REFRESH_MS, limit=None, key="dashboard_autorefresh")
+    _refresh_ms = st.session_state.get("refresh_interval", 60) * 1000
+    st_autorefresh(interval=_refresh_ms, limit=None, key="dashboard_autorefresh")
 except ImportError:
     pass  # Graceful fallback if package not yet installed
 
@@ -49,6 +48,8 @@ if "selected_stock" not in st.session_state:
     st.session_state.selected_stock = None
 if "search_counter" not in st.session_state:
     st.session_state.search_counter = 0
+if "refresh_interval" not in st.session_state:
+    st.session_state.refresh_interval = 60
 
 # ── Market status ────────────────────────────────────────────────────────────
 def _get_market_status() -> dict:
@@ -168,7 +169,9 @@ _all_search_opts = {
     for sym, name in sorted(SYMBOL_NAMES.items(), key=lambda x: x[0])
 }
 
-search_col, nav_col = st.columns([1.6, 2.4])
+_REFRESH_OPTIONS = {"10 sec": 10, "30 sec": 30, "1 min": 60, "5 min": 300, "10 min": 600}
+
+search_col, nav_col, refresh_col = st.columns([1.6, 2.0, 0.65])
 
 with search_col:
     chosen = st.selectbox(
@@ -192,6 +195,19 @@ with nav_col:
         if col.button(label, key=f"nav_{key}", use_container_width=True):
             st.session_state.page = key
             st.rerun()
+
+with refresh_col:
+    _current_label = next(
+        (k for k, v in _REFRESH_OPTIONS.items() if v == st.session_state.refresh_interval),
+        "1 min",
+    )
+    _sel = st.selectbox(
+        "⟳ Refresh",
+        list(_REFRESH_OPTIONS.keys()),
+        index=list(_REFRESH_OPTIONS.keys()).index(_current_label),
+        key="refresh_selector",
+    )
+    st.session_state.refresh_interval = _REFRESH_OPTIONS[_sel]
 
 st.markdown("---")
 

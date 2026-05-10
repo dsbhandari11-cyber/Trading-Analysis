@@ -644,3 +644,138 @@ div[data-testid="stSelectbox"] > div > div:focus-within {
     border-color: #00d4aa88 !important;
     box-shadow: 0 0 0 2px #00d4aa22 !important;
 }
+
+/* ======================================================
+   HOME PAGE — 3-column watchlist panel
+   ====================================================== */
+.wl-panel-title {
+    color: #e6edf3;
+    font-size: 1.05rem;
+    font-weight: 800;
+    margin-bottom: 2px;
+}
+.wl-section-label {
+    color: #8b949e;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 12px 0 6px 0;
+    display: block;
+}
+.wl-stock-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin: 5px 0 2px 0;
+    transition: border-color 0.2s;
+}
+.wl-stock-card:hover { border-color: #00d4aa44; }
+.wl-stock-card-active {
+    background: #0a2018;
+    border: 1px solid #00d4aa;
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin: 5px 0 2px 0;
+}
+.wl-stock-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.wl-stock-bot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 3px;
+}
+.wl-stock-sym {
+    color: #e6edf3;
+    font-family: "Courier New", monospace;
+    font-weight: 800;
+    font-size: 0.9rem;
+}
+.wl-stock-price {
+    color: #e6edf3;
+    font-family: "Courier New", monospace;
+    font-size: 0.83rem;
+    font-weight: 600;
+}
+.wl-stock-name {
+    color: #8b949e;
+    font-size: 0.72rem;
+    line-height: 1.3;
+}
+
+/* ---- Index chart header ---- */
+.idx-header {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+.idx-name {
+    color: #e6edf3;
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+}
+.idx-price {
+    color: #e6edf3;
+    font-family: "Courier New", monospace;
+    font-size: 1.15rem;
+    font-weight: 700;
+}
+
+/* ---- Strategy panel ---- */
+.strat-title {
+    color: #e6edf3;
+    font-size: 1.05rem;
+    font-weight: 800;
+    margin-bottom: 8px;
+}
+.strat-section-lbl {
+    color: #8b949e;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin: 8px 0 4px 0;
+    display: block;
+}
+
+/* ---- Compact signal cards (home page scanner section) ---- */
+.compact-signal-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-left: 3px solid #00d4aa;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    transition: border-color 0.2s;
+}
+.csc-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+.csc-sym {
+    color: #e6edf3;
+    font-weight: 800;
+    font-size: 0.92rem;
+    font-family: "Courier New", monospace;
+}
+.csc-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.csc-price {
+    color: #8b949e;
+    font-size: 0.78rem;
+    margin-bottom: 4px;
+}
