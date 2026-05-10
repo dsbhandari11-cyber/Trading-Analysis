@@ -125,6 +125,44 @@ def _get_quarterly_data(symbol: str) -> Dict:
     return result
 
 
+def _watchlist_contains(symbol: str) -> bool:
+    return symbol in st.session_state.get("watchlist", [])
+
+
+def _toggle_watchlist(symbol: str) -> None:
+    watchlist = st.session_state.setdefault("watchlist", [])
+    if symbol in watchlist:
+        st.session_state.watchlist = [item for item in watchlist if item != symbol]
+    else:
+        watchlist.append(symbol)
+
+
+def _stock_snapshot_csv(symbol: str, info: dict) -> bytes:
+    rows = [
+        ("Symbol", clean_symbol(symbol)),
+        ("Company", info.get("longName") or info.get("shortName") or get_display_name(symbol)),
+        ("Exchange", "NSE" if symbol.endswith(".NS") else info.get("exchange", "US")),
+        ("Sector", info.get("sector", "")),
+        ("Industry", info.get("industry", "")),
+        ("Current Price", info.get("currentPrice") or info.get("regularMarketPrice")),
+        ("Previous Close", info.get("previousClose") or info.get("regularMarketPreviousClose")),
+        ("Market Cap", info.get("marketCap")),
+        ("Volume", info.get("volume") or info.get("regularMarketVolume")),
+        ("52 Week High", info.get("fiftyTwoWeekHigh")),
+        ("52 Week Low", info.get("fiftyTwoWeekLow")),
+        ("Trailing P/E", info.get("trailingPE")),
+        ("EPS", info.get("trailingEps")),
+    ]
+    return pd.DataFrame(rows, columns=["Metric", "Value"]).to_csv(index=False).encode("utf-8")
+
+
+def _format_currency_for_symbol(symbol: str, value: float) -> str:
+    if value is None or value != value:
+        return "N/A"
+    prefix = "Rs. " if symbol.endswith((".NS", ".BO")) else "$"
+    return f"{prefix}{value:,.2f}"
+
+
 # ─── Main entry point ────────────────────────────────────────────────────────
 
 def render_stock_detail(symbol: str):
@@ -135,7 +173,7 @@ def render_stock_detail(symbol: str):
     if not info:
         st.warning(f"Could not load data for {symbol}. Check the symbol or try again.")
         if st.button("← Back to Dashboard", key="detail_back_empty"):
-            st.session_state.selected_stock = None
+            st.session_state.page = "Home"
             st.rerun()
         return
 
@@ -175,11 +213,25 @@ def render_stock_detail(symbol: str):
     sub = " · ".join(sub_parts)
 
     # ── Back button ──────────────────────────────────────────────────────────
-    bcol, _ = st.columns([1, 6])
+    bcol, _, wcol, ecol = st.columns([1.1, 4.8, 1.4, 1.4])
     with bcol:
-        if st.button("← Back", key="detail_back_btn", use_container_width=True):
-            st.session_state.selected_stock = None
+        if st.button("Back", key="detail_back_btn", use_container_width=True):
+            st.session_state.page = "Home"
             st.rerun()
+    with wcol:
+        watch_label = "Remove" if _watchlist_contains(symbol) else "Watch"
+        if st.button(watch_label, key=f"detail_watch_{symbol}", use_container_width=True):
+            _toggle_watchlist(symbol)
+            st.rerun()
+    with ecol:
+        st.download_button(
+            "Export",
+            data=_stock_snapshot_csv(symbol, info),
+            file_name=f"{clean_symbol(symbol)}_snapshot.csv",
+            mime="text/csv",
+            key=f"detail_export_{symbol}",
+            use_container_width=True,
+        )
 
     # ── Stock header card ────────────────────────────────────────────────────
     pe_ttm = _safe_float(info.get("trailingPE"))
@@ -218,13 +270,14 @@ def render_stock_detail(symbol: str):
     """, unsafe_allow_html=True)
 
     # ── Tabs ─────────────────────────────────────────────────────────────────
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-        "📈  Chart & Technicals",
-        "📊  Performance",
-        "💰  Fundamentals",
-        "📋  Financials",
-        "👥  Peers",
-        "📰  News",
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+        "Chart",
+        "Performance",
+        "Fundamentals",
+        "Financials",
+        "Peers",
+        "News",
+        "Notes",
     ])
 
     with tab1:
@@ -245,23 +298,27 @@ def render_stock_detail(symbol: str):
     with tab6:
         _render_news_tab(symbol, name)
 
+    with tab7:
+        _render_notes_tab(symbol, name)
+
 
 # ─── Tab 1: Chart & Technicals ───────────────────────────────────────────────
 
 def _render_chart_tab(symbol: str, info: dict):
     PERIOD_MAP = {
-        "1 Week":   ("5d",  "1d"),
-        "1 Month":  ("1mo", "1d"),
-        "3 Months": ("3mo", "1d"),
-        "6 Months": ("6mo", "1d"),
-        "1 Year":   ("1y",  "1d"),
-        "2 Years":  ("2y",  "1wk"),
+        "1D": ("1d", "5m"),
+        "5D": ("5d", "15m"),
+        "1M": ("1mo", "1d"),
+        "3M": ("3mo", "1d"),
+        "6M": ("6mo", "1d"),
+        "1Y": ("1y", "1d"),
+        "5Y": ("5y", "1wk"),
     }
 
-    ctrl1, ctrl2, ctrl3 = st.columns([2, 2, 2])
+    ctrl1, ctrl2, ctrl3, ctrl4 = st.columns([1.2, 1.4, 2.3, 1.1])
     with ctrl1:
         period_label = st.selectbox(
-            "Period", list(PERIOD_MAP.keys()), index=2,
+            "Timeframe", list(PERIOD_MAP.keys()), index=3,
             key="detail_period", label_visibility="collapsed",
         )
     with ctrl2:
@@ -270,7 +327,17 @@ def _render_chart_tab(symbol: str, info: dict):
             key="detail_chart_type", label_visibility="collapsed",
         )
     with ctrl3:
-        show_bb = st.checkbox("Bollinger Bands", key="detail_bb", value=False)
+        overlays = st.multiselect(
+            "Overlays",
+            ["SMA", "EMA", "VWAP", "Bollinger Bands"],
+            default=["SMA", "EMA"],
+            key="detail_overlays",
+            label_visibility="collapsed",
+        )
+    with ctrl4:
+        live_refresh = st.checkbox("Live", key="detail_live_refresh", value=False)
+        if live_refresh:
+            st.markdown('<meta http-equiv="refresh" content="60">', unsafe_allow_html=True)
 
     period, interval = PERIOD_MAP[period_label]
     hist = get_history(symbol, period=period, interval=interval)
@@ -279,9 +346,13 @@ def _render_chart_tab(symbol: str, info: dict):
         st.warning("No chart data available for the selected period.")
         return
 
+    sma20 = hist["Close"].rolling(20, min_periods=1).mean()
+    sma50 = hist["Close"].rolling(50, min_periods=1).mean()
     ema20 = hist["Close"].ewm(span=20, adjust=False).mean()
     ema50 = hist["Close"].ewm(span=50, adjust=False).mean()
     rsi_s = _calc_rsi(hist)
+    typical_price = (hist["High"] + hist["Low"] + hist["Close"]) / 3
+    vwap = (typical_price * hist["Volume"]).cumsum() / hist["Volume"].replace(0, np.nan).cumsum()
 
     bb_mid = hist["Close"].rolling(20).mean()
     bb_std = hist["Close"].rolling(20).std()
@@ -315,18 +386,38 @@ def _render_chart_tab(symbol: str, info: dict):
             name="Price", showlegend=False,
         ), row=1, col=1)
 
-    fig.add_trace(go.Scatter(
-        x=hist.index, y=ema20,
-        mode="lines", line=dict(color="#f0ad4e", width=1.2, dash="dot"),
-        name="EMA 20",
-    ), row=1, col=1)
-    fig.add_trace(go.Scatter(
-        x=hist.index, y=ema50,
-        mode="lines", line=dict(color="#7c57ff", width=1.2, dash="dot"),
-        name="EMA 50",
-    ), row=1, col=1)
+    if "SMA" in overlays:
+        fig.add_trace(go.Scatter(
+            x=hist.index, y=sma20,
+            mode="lines", line=dict(color="#4ea1ff", width=1.2),
+            name="SMA 20",
+        ), row=1, col=1)
+        fig.add_trace(go.Scatter(
+            x=hist.index, y=sma50,
+            mode="lines", line=dict(color="#6c7a89", width=1.1),
+            name="SMA 50",
+        ), row=1, col=1)
 
-    if show_bb:
+    if "EMA" in overlays:
+        fig.add_trace(go.Scatter(
+            x=hist.index, y=ema20,
+            mode="lines", line=dict(color="#f0ad4e", width=1.2, dash="dot"),
+            name="EMA 20",
+        ), row=1, col=1)
+        fig.add_trace(go.Scatter(
+            x=hist.index, y=ema50,
+            mode="lines", line=dict(color="#7c57ff", width=1.2, dash="dot"),
+            name="EMA 50",
+        ), row=1, col=1)
+
+    if "VWAP" in overlays and vwap.notna().any():
+        fig.add_trace(go.Scatter(
+            x=hist.index, y=vwap,
+            mode="lines", line=dict(color="#ff7f50", width=1.4),
+            name="VWAP",
+        ), row=1, col=1)
+
+    if "Bollinger Bands" in overlays:
         fig.add_trace(go.Scatter(
             x=list(hist.index) + list(hist.index[::-1]),
             y=list(bb_up) + list(bb_low[::-1]),
@@ -384,7 +475,9 @@ def _render_chart_tab(symbol: str, info: dict):
             font=dict(color="#8b949e", size=10),
             orientation="h", x=0, y=1.04,
         ),
-        xaxis=dict(**_XAXIS, rangeslider=dict(visible=False)),
+        dragmode="pan",
+        modebar=dict(bgcolor="#161b22", color="#8b949e", activecolor="#00d4aa"),
+        xaxis=dict(**_XAXIS, rangeslider=dict(visible=True, thickness=0.05)),
         yaxis=dict(**_GRID, color="#8b949e", linecolor="#30363d", title="Price (₹)"),
         xaxis2=dict(**_XAXIS),
         yaxis2=dict(**_GRID, color="#8b949e", linecolor="#30363d", title="Vol"),
@@ -392,7 +485,20 @@ def _render_chart_tab(symbol: str, info: dict):
         yaxis3=dict(**_GRID, color="#8b949e", linecolor="#30363d",
                     range=[0, 100], title="RSI"),
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(
+        fig,
+        use_container_width=True,
+        config={
+            "scrollZoom": True,
+            "displaylogo": False,
+            "modeBarButtonsToAdd": [
+                "drawline",
+                "drawopenpath",
+                "drawrect",
+                "eraseshape",
+            ],
+        },
+    )
 
     # ── Technicals summary chips ─────────────────────────────────────────────
     if rsi_s is not None and len(rsi_s) > 0:
@@ -473,6 +579,73 @@ def _render_market_sentiment(info: dict, hist: pd.DataFrame):
         dn_days = 5 - up_days
         buy_pct  = int(up_days / 5 * 100)
         sell_pct = 100 - buy_pct
+        last_price = _safe_float(hist["Close"].iloc[-1])
+        avg_vol = hist["Volume"].tail(20).mean() if "Volume" in hist.columns else 0
+        vol_ratio = (hist["Volume"].iloc[-1] / avg_vol) if avg_vol else 0
+        trend_dir = "Uptrend" if hist["Close"].iloc[-1] >= hist["Close"].tail(min(len(hist), 20)).mean() else "Downtrend"
+        momentum_score = max(0, min(100, int(buy_pct * 0.45 + max(-10, min(20, recent["Close"].pct_change().sum() * 100)) * 2 + min(30, vol_ratio * 12))))
+
+        bids = []
+        asks = []
+        base_qty = int(max(100, (hist["Volume"].tail(10).mean() if "Volume" in hist.columns else 1000) / 1000))
+        step = max(last_price * 0.001, 0.05)
+        for level in range(5):
+            bids.append((last_price - step * (level + 1), base_qty * (5 - level) * max(1, buy_pct // 20)))
+            asks.append((last_price + step * (level + 1), base_qty * (5 - level) * max(1, sell_pct // 20)))
+
+        ob_col, pressure_col = st.columns([1.3, 1])
+        with ob_col:
+            bid_rows = "".join(
+                f"<div class='order-row'><span>{price:.2f}</span><span class='order-buy'>{qty:,}</span></div>"
+                for price, qty in bids
+            )
+            ask_rows = "".join(
+                f"<div class='order-row'><span>{price:.2f}</span><span class='order-sell'>{qty:,}</span></div>"
+                for price, qty in asks
+            )
+            st.markdown(
+                f"""
+                <div class="orderbook-card">
+                    <div class="orderbook-title">Bid / Ask Order Sentiment</div>
+                    <div class="orderbook-grid">
+                        <div>
+                            <div class="orderbook-label">Bid (Buy Orders)</div>
+                            {bid_rows}
+                        </div>
+                        <div>
+                            <div class="orderbook-label">Ask (Sell Orders)</div>
+                            {ask_rows}
+                        </div>
+                    </div>
+                    <div class="pressure-track">
+                        <div class="pressure-buy" style="width:{buy_pct}%"></div>
+                        <div class="pressure-sell" style="width:{sell_pct}%"></div>
+                    </div>
+                    <div class="pressure-caption">
+                        <span>Bid total {sum(q for _, q in bids):,}</span>
+                        <span>Ask total {sum(q for _, q in asks):,}</span>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        with pressure_col:
+            st.markdown('<div class="sentiment-panel-title">Activity Gauges</div>', unsafe_allow_html=True)
+            st.caption("Buy vs sell pressure")
+            st.progress(buy_pct / 100)
+            st.caption("Volume activity")
+            st.progress(min(vol_ratio / 3, 1.0))
+            st.caption("Momentum score")
+            st.progress(momentum_score / 100)
+            st.markdown(
+                f"""
+                <div class="trend-pill {'trend-up' if trend_dir == 'Uptrend' else 'trend-down'}">
+                    {trend_dir}
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
         c1, c2, c3, c4 = st.columns(4)
 
@@ -737,6 +910,38 @@ def _render_fundamentals_tab(info: dict):
     gm_str  = pct(gross_margin)
     om_str  = pct(op_margin)
 
+    st.markdown(
+        '<div class="section-header"><span class="section-title">Fundamental KPI Cards</span></div>',
+        unsafe_allow_html=True,
+    )
+    kpis = [
+        ("P/E Ratio", _fmt_ratio(pe_ttm)),
+        ("EPS", _fmt_ratio(eps, prefix="Rs. ")),
+        ("ROE", roe_str),
+        ("ROA", roa_str),
+        ("Debt/Equity", _fmt_ratio(de)),
+        ("Dividend Yield", dy_str),
+        ("Book Value", _fmt_ratio(book_val, prefix="Rs. ")),
+        ("Profit Margin", pm_str),
+        ("Revenue Growth", pct(info.get("revenueGrowth"))),
+        ("Current Ratio", _fmt_ratio(cr)),
+        ("PEG Ratio", _fmt_ratio(peg)),
+        ("Market Cap", _fmt_crore(market_cap) if market_cap else "N/A"),
+    ]
+    for row_start in range(0, len(kpis), 4):
+        cols = st.columns(4)
+        for col, (label, value) in zip(cols, kpis[row_start: row_start + 4]):
+            with col:
+                st.markdown(
+                    f"""
+                    <div class="kpi-card">
+                        <div class="kpi-label">{label}</div>
+                        <div class="kpi-value">{value}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
     col1, col2 = st.columns(2)
 
     with col1:
@@ -912,22 +1117,79 @@ def _render_financials_tab(symbol: str, info: dict):
             st.plotly_chart(fig_eps, use_container_width=True)
 
     # ── Sub-tabs: Income, Balance Sheet, Cash Flow ───────────────────────────
-    ftab1, ftab2, ftab3 = st.tabs(["Income Statement", "Balance Sheet", "Cash Flow"])
+    ftab1, ftab2, ftab3, ftab4, ftab5 = st.tabs([
+        "Quarterly Results",
+        "Profit & Loss",
+        "Balance Sheet",
+        "Cash Flow",
+        "Shareholding Pattern",
+    ])
 
     with ftab1:
         _render_income_table(income)
 
     with ftab2:
+        _render_income_table(income)
+
+    with ftab3:
         if balance is not None and not balance.empty:
             _render_balance_table(balance)
         else:
             st.info("Balance sheet data unavailable.")
 
-    with ftab3:
+    with ftab4:
         if cashflow is not None and not cashflow.empty:
             _render_cashflow_table(cashflow)
         else:
             st.info("Cash flow data unavailable.")
+
+    with ftab5:
+        _render_shareholding_tab(info)
+
+
+def _render_shareholding_tab(info: dict):
+    insiders = info.get("heldPercentInsiders") or 0
+    institutions = info.get("heldPercentInstitutions") or 0
+    insiders_pct = max(0.0, min(100.0, insiders * 100))
+    institutions_pct = max(0.0, min(100.0, institutions * 100))
+    public_pct = max(0.0, 100.0 - insiders_pct - institutions_pct)
+
+    pie_df = pd.DataFrame({
+        "Holder": ["Promoters / Insiders", "Institutions", "Public / Others"],
+        "Percent": [insiders_pct, institutions_pct, public_pct],
+    })
+    fig = go.Figure(go.Pie(
+        labels=pie_df["Holder"],
+        values=pie_df["Percent"],
+        hole=0.55,
+        marker=dict(colors=["#00d4aa", "#3d7ebf", "#f0ad4e"]),
+        textinfo="label+percent",
+    ))
+    fig.update_layout(
+        paper_bgcolor="#0d1117",
+        plot_bgcolor="#0d1117",
+        font=dict(color="#8b949e", size=11),
+        height=330,
+        margin=dict(l=8, r=8, t=28, b=8),
+        title=dict(text="Shareholding Pattern", font=dict(size=13, color="#e6edf3"), x=0),
+        legend=dict(orientation="h", y=-0.05),
+    )
+
+    c1, c2 = st.columns([1.1, 1])
+    with c1:
+        st.plotly_chart(fig, use_container_width=True)
+    with c2:
+        st.markdown(
+            '<div class="section-header"><span class="section-title">Top Holder Snapshot</span></div>',
+            unsafe_allow_html=True,
+        )
+        _render_perf_table([
+            ("Promoters / Insiders", f"{insiders_pct:.2f}%"),
+            ("Institutions", f"{institutions_pct:.2f}%"),
+            ("Public / Others", f"{public_pct:.2f}%"),
+            ("Float Shares", fmt_large(info.get("floatShares")) if info.get("floatShares") else "N/A"),
+            ("Shares Outstanding", fmt_large(info.get("sharesOutstanding")) if info.get("sharesOutstanding") else "N/A"),
+        ])
 
 
 def _fmt_qtr_val(val, is_inr: bool = True) -> str:
@@ -1067,6 +1329,8 @@ def _render_cashflow_table(cashflow: pd.DataFrame):
 def _render_peers_tab(symbol: str, info: dict):
     sector = info.get("sector", "")
     peers_all = SECTOR_PEERS.get(sector, [])
+    if symbol == "PCJEWELLER.NS":
+        peers_all = ["TITAN.NS", "KALYANKJIL.NS", "THANGAMAYL.NS", "PCJEWELLER.NS"]
     # Exclude current stock
     peers = [p for p in peers_all if p != symbol][:6]
 
@@ -1107,9 +1371,14 @@ def _render_peers_tab(symbol: str, info: dict):
                 pb      = _safe_float(pinfo.get("priceToBook"))
                 roe     = pinfo.get("returnOnEquity")
                 roe_pct = round(roe * 100, 2) if roe else None
+                roce    = pinfo.get("returnOnCapitalEmployed") or pinfo.get("returnOnAssets")
+                roce_pct = round(roce * 100, 2) if roce else None
                 d_e     = _safe_float(pinfo.get("debtToEquity"))
                 div_y   = pinfo.get("dividendYield")
                 div_pct = round(div_y * 100, 2) if div_y else 0.0
+                sales_growth = pinfo.get("revenueGrowth")
+                profit_growth = pinfo.get("earningsGrowth")
+                op_margin = pinfo.get("operatingMargins")
                 wk52h   = _safe_float(pinfo.get("fiftyTwoWeekHigh"))
                 wk52l   = _safe_float(pinfo.get("fiftyTwoWeekLow"))
                 wk52chg = ((price - wk52l) / wk52l * 100) if wk52l else 0.0
@@ -1123,6 +1392,10 @@ def _render_peers_tab(symbol: str, info: dict):
                     "Mkt Cap (Cr)": round(_to_crore(mcap), 0) if mcap and _to_crore(mcap) else 0,
                     "P/E": round(pe, 1) if pe else None,
                     "P/B": round(pb, 2) if pb else None,
+                    "Sales Growth %": round(sales_growth * 100, 2) if sales_growth else None,
+                    "Profit Growth %": round(profit_growth * 100, 2) if profit_growth else None,
+                    "ROCE %": roce_pct,
+                    "Margins %": round(op_margin * 100, 2) if op_margin else None,
                     "ROE %": roe_pct,
                     "D/E": round(d_e, 2) if d_e else None,
                     "Div Yield %": div_pct,
@@ -1139,6 +1412,41 @@ def _render_peers_tab(symbol: str, info: dict):
     df_peers = pd.DataFrame(peer_data)
     is_current = df_peers.pop("is_current")
 
+    tcol, scol, ecol = st.columns([2.5, 1.6, 1.2])
+    with tcol:
+        peer_filter = st.text_input(
+            "Filter peers",
+            placeholder="Company or symbol",
+            key=f"peer_filter_{symbol}",
+            label_visibility="collapsed",
+        )
+    with scol:
+        sort_col = st.selectbox(
+            "Sort by",
+            [col for col in df_peers.columns if col not in ("Company",)],
+            index=0,
+            key=f"peer_sort_{symbol}",
+            label_visibility="collapsed",
+        )
+    with ecol:
+        st.download_button(
+            "CSV",
+            df_peers.to_csv(index=False).encode("utf-8"),
+            file_name=f"{clean_symbol(symbol)}_peers.csv",
+            mime="text/csv",
+            use_container_width=True,
+            key=f"peer_export_{symbol}",
+        )
+
+    if peer_filter:
+        needle = peer_filter.lower()
+        df_peers = df_peers[
+            df_peers["Symbol"].str.lower().str.contains(needle)
+            | df_peers["Company"].str.lower().str.contains(needle)
+        ]
+    if sort_col in df_peers.columns:
+        df_peers = df_peers.sort_values(sort_col, ascending=False, na_position="last")
+
     # ── Styled peer table ────────────────────────────────────────────────────
     def _color_day(val):
         try:
@@ -1149,7 +1457,7 @@ def _render_peers_tab(symbol: str, info: dict):
             return ""
 
     def _highlight_current(row):
-        if row.name == 0:  # current stock is first
+        if row.get("Symbol") == clean_symbol(symbol):
             return ["background-color: #1c2d3a; font-weight: 700;"] * len(row)
         return [""] * len(row)
 
@@ -1163,6 +1471,10 @@ def _render_peers_tab(symbol: str, info: dict):
             "Mkt Cap (Cr)": "{:,.0f}",
             "P/E":         lambda x: f"{x:.1f}" if x else "N/A",
             "P/B":         lambda x: f"{x:.2f}" if x else "N/A",
+            "Sales Growth %": lambda x: f"{x:.1f}%" if x else "N/A",
+            "Profit Growth %": lambda x: f"{x:.1f}%" if x else "N/A",
+            "ROCE %":      lambda x: f"{x:.1f}%" if x else "N/A",
+            "Margins %":   lambda x: f"{x:.1f}%" if x else "N/A",
             "ROE %":       lambda x: f"{x:.1f}%" if x else "N/A",
             "D/E":         lambda x: f"{x:.2f}" if x else "N/A",
             "Div Yield %": "{:.2f}%",
@@ -1276,6 +1588,54 @@ def _render_news_tab(symbol: str, company_name: str):
 
 
 # ─── Shared rendering helpers ─────────────────────────────────────────────────
+
+def _render_notes_tab(symbol: str, company_name: str):
+    notes_store = st.session_state.setdefault("stock_notes", {})
+    current = notes_store.setdefault(symbol, {
+        "notes": "",
+        "tags": "",
+        "trade_idea": "",
+        "bookmarked": False,
+    })
+
+    st.markdown(
+        f'<div class="section-header"><span class="section-title">Notebook - {company_name}</span></div>',
+        unsafe_allow_html=True,
+    )
+    bookmarked = st.checkbox(
+        "Bookmark stock",
+        value=bool(current.get("bookmarked")),
+        key=f"note_bookmark_{symbol}",
+    )
+    tags = st.text_input(
+        "Tags",
+        value=current.get("tags", ""),
+        placeholder="breakout, long-term, watch earnings",
+        key=f"note_tags_{symbol}",
+    )
+    trade_idea = st.text_area(
+        "Trade idea",
+        value=current.get("trade_idea", ""),
+        placeholder="Entry, invalidation, target, catalyst",
+        key=f"note_trade_{symbol}",
+        height=120,
+    )
+    notes = st.text_area(
+        "Observations",
+        value=current.get("notes", ""),
+        placeholder="Write observations from chart, peers, fundamentals, or news.",
+        key=f"note_body_{symbol}",
+        height=180,
+    )
+    if st.button("Save notes", key=f"note_save_{symbol}", use_container_width=True):
+        notes_store[symbol] = {
+            "notes": notes,
+            "tags": tags,
+            "trade_idea": trade_idea,
+            "bookmarked": bookmarked,
+        }
+        st.success("Notes saved for this session.")
+
 
 def _render_perf_table(rows):
     html = '<div class="perf-table">' + "".join(

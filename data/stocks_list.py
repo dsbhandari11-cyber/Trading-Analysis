@@ -138,6 +138,7 @@ SYMBOL_NAMES = {
     "MANKIND.NS": "Mankind Pharma",
     "NYKAA.NS": "FSN E-Commerce (Nykaa)",
     "PAYTM.NS": "One97 Communications",
+    "PCJEWELLER.NS": "PC Jeweller",
 }
 
 

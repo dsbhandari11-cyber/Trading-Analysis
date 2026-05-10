@@ -296,3 +296,231 @@ hr { border-color: #21262d !important; }
     margin-top: -8px;
     margin-bottom: 8px;
 }
+
+/* ---- Watchlist sidebar ---- */
+section[data-testid="stSidebar"] {
+    background: #0b0f15 !important;
+    border-right: 1px solid #21262d;
+}
+.watchlist-title {
+    color: #e6edf3;
+    font-size: 1.05rem;
+    font-weight: 800;
+    margin-top: 8px;
+}
+.watchlist-subtitle {
+    color: #8b949e;
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+}
+.watchlist-scroll {
+    max-height: 520px;
+    overflow-y: auto;
+    padding-right: 3px;
+}
+.watchlist-row,
+.watchlist-row-active {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 9px 10px;
+    margin: 7px 0 4px 0;
+}
+.watchlist-row-active {
+    border-color: #00d4aa;
+    background: #0a2018;
+}
+.watchlist-symbol {
+    color: #e6edf3;
+    font-family: "Courier New", monospace;
+    font-size: 0.92rem;
+    font-weight: 800;
+}
+.watchlist-name {
+    color: #8b949e;
+    font-size: 0.72rem;
+    line-height: 1.25;
+}
+
+/* ---- Drill-down stock page ---- */
+.stock-header-card {
+    background: linear-gradient(180deg, #161b22 0%, #111821 100%);
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 18px;
+    margin: 10px 0 16px 0;
+}
+.stock-header-inner {
+    display: flex;
+    gap: 18px;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+.stock-symbol-badge,
+.sh-chip {
+    display: inline-block;
+    background: #00d4aa18;
+    border: 1px solid #00d4aa55;
+    color: #00d4aa;
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+.stock-full-name {
+    color: #e6edf3;
+    font-size: 1.55rem;
+    font-weight: 800;
+    margin-top: 7px;
+}
+.stock-price-block { text-align: right; min-width: 230px; }
+.stock-price-large {
+    color: #e6edf3;
+    font-family: "Courier New", monospace;
+    font-size: 2rem;
+    font-weight: 900;
+}
+.stock-header-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 15px;
+}
+.sh-chip {
+    background: #0d1117;
+    color: #8b949e;
+    border-color: #30363d;
+}
+.tech-summary-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin: 12px 0;
+}
+.tech-chip,
+.kpi-card,
+.perf-mini-card,
+.sentiment-card,
+.orderbook-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 12px;
+}
+.tech-chip-label,
+.kpi-label,
+.sent-label,
+.perf-mini-title,
+.orderbook-label {
+    color: #8b949e;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.tech-chip-val,
+.kpi-value,
+.sent-val {
+    display: block;
+    color: #e6edf3;
+    font-weight: 800;
+    margin-top: 5px;
+}
+.kpi-value { font-size: 1.25rem; font-family: "Courier New", monospace; }
+.sentiment-bull { border-color: #00d4aa55; }
+.sentiment-bear { border-color: #ff444455; }
+.sent-sub {
+    color: #8b949e;
+    font-size: 0.72rem;
+    margin-top: 4px;
+}
+.orderbook-title,
+.sentiment-panel-title {
+    color: #e6edf3;
+    font-weight: 800;
+    margin-bottom: 10px;
+}
+.orderbook-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+.order-row {
+    display: flex;
+    justify-content: space-between;
+    color: #e6edf3;
+    font-family: "Courier New", monospace;
+    font-size: 0.8rem;
+    padding: 5px 0;
+    border-bottom: 1px solid #21262d;
+}
+.order-buy { color: #00d4aa; }
+.order-sell { color: #ff6b7a; }
+.pressure-track {
+    display: flex;
+    height: 10px;
+    margin-top: 14px;
+    border-radius: 5px;
+    overflow: hidden;
+    background: #30363d;
+}
+.pressure-buy { background: #00d4aa; }
+.pressure-sell { background: #d82f55; }
+.pressure-caption {
+    display: flex;
+    justify-content: space-between;
+    color: #8b949e;
+    font-size: 0.72rem;
+    margin-top: 5px;
+}
+.trend-pill {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-weight: 800;
+    text-align: center;
+}
+.trend-up { color: #00d4aa; background: #0a2018; border: 1px solid #00d4aa55; }
+.trend-down { color: #ff6b7a; background: #1e0a0a; border: 1px solid #ff444455; }
+.perf-table {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.perf-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid #21262d;
+}
+.perf-row:last-child { border-bottom: 0; }
+.perf-label { color: #8b949e; font-size: 0.8rem; }
+.perf-value {
+    color: #e6edf3;
+    font-family: "Courier New", monospace;
+    font-weight: 700;
+    text-align: right;
+}
+.news-item-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin: 8px 0;
+}
+.news-item-meta,
+.news-item-summary {
+    color: #8b949e;
+    font-size: 0.76rem;
+}
+.news-item-title {
+    color: #e6edf3 !important;
+    display: block;
+    font-weight: 750;
+    margin: 4px 0;
+    text-decoration: none;
+}

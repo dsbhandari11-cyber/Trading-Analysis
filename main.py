@@ -18,7 +18,7 @@ st.set_page_config(
     page_title="Bhandari Trading Analysis",
     page_icon="📈",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
     menu_items={
         "Get Help": None,
         "Report a bug": None,
@@ -33,6 +33,12 @@ def _load_css():
         st.markdown(f"<style>{css_path.read_text(encoding='utf-8')}</style>", unsafe_allow_html=True)
 
 _load_css()
+
+try:
+    from components.watchlist_sidebar import render_watchlist_sidebar
+    render_watchlist_sidebar()
+except Exception as _e:
+    st.sidebar.warning(f"Watchlist unavailable: {_e}")
 
 # ── App header ───────────────────────────────────────────────────────────────
 st.markdown(
@@ -66,6 +72,8 @@ except Exception as _e:
 # ── Navigation ───────────────────────────────────────────────────────────────
 if "page" not in st.session_state:
     st.session_state.page = "Home"
+if "selected_stock" not in st.session_state:
+    st.session_state.selected_stock = None
 
 PAGES = {
     "Home": "🏠 Home",
@@ -98,6 +106,15 @@ try:
     elif page == "Momentum":
         from pages.momentum_scanner import render_momentum_scanner
         render_momentum_scanner()
+
+    elif page == "StockDetail":
+        from pages.stock_detail import render_stock_detail
+        symbol = st.session_state.get("selected_stock")
+        if symbol:
+            render_stock_detail(symbol)
+        else:
+            st.session_state.page = "Home"
+            st.rerun()
 
 except Exception as _page_err:
     import traceback
