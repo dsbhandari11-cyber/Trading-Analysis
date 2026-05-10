@@ -30,11 +30,6 @@ log = get_logger(__name__)
 
 def render_momentum_scanner():
     st.markdown(
-        f'<meta http-equiv="refresh" content="{REFRESH_INTERVAL}">',
-        unsafe_allow_html=True,
-    )
-
-    st.markdown(
         '<div class="section-header"><span class="section-title">Momentum Scanner</span>'
         '<span class="section-badge">SCANNING</span></div>',
         unsafe_allow_html=True,
@@ -194,6 +189,14 @@ def _render_signal_cards(signals: list, signal_type: str):
         """
         with cols[i % 2]:
             st.markdown(card_html, unsafe_allow_html=True)
+            if st.button(
+                f"↗ Analyze {sig['symbol'].replace('.NS','')}",
+                key=f"scan_analyze_{sig['symbol']}_{i}",
+                use_container_width=True,
+            ):
+                st.session_state.selected_stock = sig["symbol"]
+                st.session_state.page = "StockDetail"
+                st.rerun()
 
     if len(signals) > 20:
         st.caption(f"Showing top 20 of {len(signals)} signals.")

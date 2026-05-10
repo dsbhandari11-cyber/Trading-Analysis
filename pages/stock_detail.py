@@ -335,9 +335,7 @@ def _render_chart_tab(symbol: str, info: dict):
             label_visibility="collapsed",
         )
     with ctrl4:
-        live_refresh = st.checkbox("Live", key="detail_live_refresh", value=False)
-        if live_refresh:
-            st.markdown('<meta http-equiv="refresh" content="60">', unsafe_allow_html=True)
+        pass  # Live updates handled by global st_autorefresh in main.py
 
     period, interval = PERIOD_MAP[period_label]
     hist = get_history(symbol, period=period, interval=interval)

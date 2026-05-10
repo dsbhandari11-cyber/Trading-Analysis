@@ -82,7 +82,7 @@ header { visibility: hidden; }
     100% { transform: translateX(-50%); }
 }
 
-/* ---- App Header ---- */
+/* ---- App Header (legacy, kept for compatibility) ---- */
 .app-header {
     text-align: center;
     padding: 14px 0 10px 0;
@@ -114,6 +114,95 @@ header { visibility: hidden; }
 @keyframes pulse {
     0%, 100% { opacity: 1; }
     50%       { opacity: 0.3; }
+}
+
+/* ---- App Header V2 (left-aligned, with market hours) ---- */
+.app-header-v2 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0 12px 0;
+    border-bottom: 1px solid #21262d;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+.app-header-left {}
+.app-title-v2 {
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: #e6edf3;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+}
+.brand-accent { color: #00d4aa; }
+.app-sub-v2 {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: #8b949e;
+    font-size: 0.8rem;
+    margin-top: 4px;
+}
+.live-dot-v2 {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+    flex-shrink: 0;
+}
+
+/* ---- Market Hours Chips ---- */
+.market-hours-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.market-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 7px 12px;
+    min-width: 110px;
+    transition: border-color 0.2s;
+}
+.market-chip:hover { border-color: #00d4aa44; }
+.market-chip-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    animation: pulse 2s infinite;
+}
+.market-chip-body {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.3;
+}
+.market-chip-label {
+    color: #e6edf3;
+    font-size: 0.73rem;
+    font-weight: 700;
+}
+.market-chip-time {
+    color: #e6edf3;
+    font-family: 'Courier New', monospace;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+.market-chip-tz {
+    color: #8b949e;
+    font-size: 0.68rem;
+    font-weight: 400;
+}
+.market-chip-status {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
 }
 
 /* ---- Navigation ---- */
@@ -523,4 +612,35 @@ section[data-testid="stSidebar"] {
     font-weight: 750;
     margin: 4px 0;
     text-decoration: none;
+}
+
+/* ---- Mover row ---- */
+.stColumns > div {
+    transition: background 0.15s;
+}
+
+/* ---- Analyze buttons (small ↗ buttons) ---- */
+button[kind="secondary"] {
+    padding: 2px 6px !important;
+    font-size: 0.78rem !important;
+    min-height: 28px !important;
+}
+
+/* ---- Scan analyze buttons ---- */
+[data-testid="stButton"] button:has-text("↗ Analyze") {
+    background: #00d4aa18 !important;
+    border-color: #00d4aa44 !important;
+    color: #00d4aa !important;
+    font-size: 0.8rem !important;
+}
+
+/* ---- Search selectbox ---- */
+div[data-testid="stSelectbox"] > div > div {
+    background: #161b22 !important;
+    border-color: #30363d !important;
+    color: #e6edf3 !important;
+}
+div[data-testid="stSelectbox"] > div > div:focus-within {
+    border-color: #00d4aa88 !important;
+    box-shadow: 0 0 0 2px #00d4aa22 !important;
 }

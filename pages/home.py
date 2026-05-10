@@ -16,12 +16,13 @@ from config import MAJOR_INDICES, REFRESH_INTERVAL, TICKER_SYMBOLS, COLORS
 from utils.helpers import fmt_price, fmt_change, ist_now, color_for_change
 
 
-def render_home():
-    st.markdown(
-        f'<meta http-equiv="refresh" content="{REFRESH_INTERVAL}">',
-        unsafe_allow_html=True,
-    )
+def _go_to_stock(symbol: str):
+    st.session_state.selected_stock = symbol
+    st.session_state.page = "StockDetail"
+    st.rerun()
 
+
+def render_home():
     st.markdown(
         f'<div class="refresh-info"><span class="live-dot"></span> Live · Updated {ist_now()}</div>',
         unsafe_allow_html=True,
@@ -62,14 +63,16 @@ def _render_major_indices():
             st.markdown(card_html, unsafe_allow_html=True)
             if hist is not None and not hist.empty:
                 fig = mini_sparkline(hist, positive=(pct >= 0))
-                st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
     st.markdown("---")
 
 
 def _render_heatmap():
     st.markdown(
-        '<div class="section-header"><span class="section-title">Nifty 50 Heatmap</span></div>',
+        '<div class="section-header"><span class="section-title">Nifty 50 Heatmap</span>'
+        '<span style="color:#8b949e;font-size:0.78rem;margin-left:auto;">Click a stock below to analyze</span>'
+        '</div>',
         unsafe_allow_html=True,
     )
     with st.spinner("Loading heatmap..."):
@@ -81,7 +84,20 @@ def _render_heatmap():
             for p in prices
         ]
         fig = heatmap_chart(heatmap_data)
-        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+        # Quick-select from heatmap stocks
+        sym_map = {f"{p['symbol'].replace('.NS','')} ({p['pct_change']:+.2f}%)": p["symbol"] for p in prices}
+        hm_pick = st.selectbox(
+            "heatmap_pick",
+            [""] + list(sym_map.keys()),
+            index=0,
+            key="heatmap_stock_pick",
+            label_visibility="collapsed",
+            placeholder="↗ Analyze a heatmap stock…",
+        )
+        if hm_pick:
+            _go_to_stock(sym_map[hm_pick])
     else:
         st.info("Heatmap data unavailable. Retrying on next refresh.")
 
@@ -104,19 +120,7 @@ def _render_gainers_losers():
             f'margin-bottom:6px;">▲ Top Gainers</div>',
             unsafe_allow_html=True,
         )
-        gainers = movers.get("gainers", [])
-        if gainers:
-            df = _movers_df(gainers)
-            st.dataframe(
-                df.style.map(
-                    lambda v: f"color: {COLORS['positive']}", subset=["Change %"]
-                ),
-                width="stretch",
-                hide_index=True,
-                height=320,
-            )
-        else:
-            st.info("No gainer data.")
+        _render_mover_list(movers.get("gainers", []), COLORS["positive"])
 
     with col_l:
         st.markdown(
@@ -124,37 +128,42 @@ def _render_gainers_losers():
             f'margin-bottom:6px;">▼ Top Losers</div>',
             unsafe_allow_html=True,
         )
-        losers = movers.get("losers", [])
-        if losers:
-            df = _movers_df(losers)
-            st.dataframe(
-                df.style.map(
-                    lambda v: f"color: {COLORS['negative']}", subset=["Change %"]
-                ),
-                width="stretch",
-                hide_index=True,
-                height=320,
-            )
-        else:
-            st.info("No loser data.")
+        _render_mover_list(movers.get("losers", []), COLORS["negative"])
 
     st.markdown("---")
 
 
-def _movers_df(items: list) -> pd.DataFrame:
-    rows = []
+def _render_mover_list(items: list, pct_color: str):
+    if not items:
+        st.info("No data.")
+        return
+
     for item in items:
         sym = item["symbol"]
         name = get_display_name(sym)
         price = item["price"]
         pct = item["pct_change"]
-        rows.append({
-            "Stock": name[:22],
-            "Symbol": sym.replace(".NS", ""),
-            "Price (₹)": f"{price:,.2f}",
-            "Change %": f"{'+' if pct >= 0 else ''}{pct:.2f}%",
-        })
-    return pd.DataFrame(rows)
+        ticker = sym.replace(".NS", "").replace(".BO", "")
+
+        c1, c2, c3, c4, c5 = st.columns([1.2, 2.2, 1.5, 1.1, 0.7])
+        c1.markdown(
+            f'<span style="color:#e6edf3;font-weight:800;font-family:monospace;font-size:0.85rem;">{ticker}</span>',
+            unsafe_allow_html=True,
+        )
+        c2.markdown(
+            f'<span style="color:#8b949e;font-size:0.78rem;">{name[:20]}</span>',
+            unsafe_allow_html=True,
+        )
+        c3.markdown(
+            f'<span style="font-family:monospace;color:#e6edf3;font-size:0.85rem;">₹{price:,.2f}</span>',
+            unsafe_allow_html=True,
+        )
+        c4.markdown(
+            f'<span style="color:{pct_color};font-weight:700;font-size:0.85rem;">{pct:+.2f}%</span>',
+            unsafe_allow_html=True,
+        )
+        if c5.button("↗", key=f"mover_{sym}", help=f"Analyze {name}", use_container_width=True):
+            _go_to_stock(sym)
 
 
 def _render_news_feed():

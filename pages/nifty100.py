@@ -25,11 +25,6 @@ _BATCH_PROCESS_DELAY = 0.05
 
 def render_nifty100():
     st.markdown(
-        f'<meta http-equiv="refresh" content="{REFRESH_INTERVAL}">',
-        unsafe_allow_html=True,
-    )
-
-    st.markdown(
         '<div class="section-header"><span class="section-title">Nifty 100 Screener</span>'
         '<span class="section-badge">LIVE</span></div>',
         unsafe_allow_html=True,
@@ -163,7 +158,25 @@ def _render_table(filters: dict):
 
     display_df = _build_display_df(df)
     styled = _style_df(display_df, df)
-    st.dataframe(styled, width="stretch", hide_index=True, height=520)
+    st.dataframe(styled, use_container_width=True, hide_index=True, height=520)
+
+    st.markdown(
+        '<div style="margin-top:10px;color:#8b949e;font-size:0.78rem;">↗ Select a stock from the table to open full analysis:</div>',
+        unsafe_allow_html=True,
+    )
+    sym_opts = {f"{r['symbol'].replace('.NS','')} — {r['name']}": r["symbol"] for _, r in df.iterrows()}
+    pick = st.selectbox(
+        "n100_quick_analyze",
+        [""] + list(sym_opts.keys()),
+        index=0,
+        key="n100_quick_analyze",
+        label_visibility="collapsed",
+        placeholder="Select stock to analyze…",
+    )
+    if pick:
+        st.session_state.selected_stock = sym_opts[pick]
+        st.session_state.page = "StockDetail"
+        st.rerun()
 
 
 def _build_display_df(df: pd.DataFrame) -> pd.DataFrame:
