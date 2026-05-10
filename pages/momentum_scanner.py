@@ -91,13 +91,9 @@ def _run_scan() -> dict:
     reversals = []
     momentum_signals = []
 
-    with st.spinner("Scanning Nifty 100 for momentum signals…"):
-        hist_data = batch_download(symbols, period="2mo")
+    hist_data = batch_download(symbols, period="2mo")
 
-    total = len(symbols)
-    prog = st.progress(0, text="Analysing signals…")
-
-    for idx, sym in enumerate(symbols):
+    for sym in symbols:
         try:
             df = hist_data.get(sym)
             if df is None or df.empty or len(df) < 20:
@@ -143,11 +139,7 @@ def _run_scan() -> dict:
 
         except Exception as e:
             log.debug("Scan error %s: %s", sym, e)
-        finally:
-            prog.progress(int(100 * (idx + 1) / total), text=f"Scanning {sym}…")
         time.sleep(0.02)
-
-    prog.empty()
 
     breakouts.sort(key=lambda x: x["momentum_score"], reverse=True)
     reversals.sort(key=lambda x: x.get("rsi", 100))

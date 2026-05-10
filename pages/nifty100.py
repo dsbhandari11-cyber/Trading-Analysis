@@ -79,12 +79,9 @@ def _load_screener_data() -> pd.DataFrame:
     symbols = NIFTY100_SYMBOLS
     rows = []
 
-    progress = st.progress(0, text="Downloading historical data…")
     hist_data = batch_download(symbols, period="3mo")
-    progress.progress(40, text="Computing technical indicators…")
 
-    total = len(symbols)
-    for idx, sym in enumerate(symbols):
+    for sym in symbols:
         try:
             df = hist_data.get(sym)
             if df is None or df.empty or "Close" not in df.columns:
@@ -119,12 +116,7 @@ def _load_screener_data() -> pd.DataFrame:
             })
         except Exception as e:
             log.warning("Screener error for %s: %s", sym, e)
-        finally:
-            progress.progress(40 + int(55 * (idx + 1) / total), text=f"Processing {sym}…")
         time.sleep(_BATCH_PROCESS_DELAY)
-
-    progress.progress(100, text="Done")
-    progress.empty()
 
     return pd.DataFrame(rows)
 

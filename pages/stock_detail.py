@@ -428,12 +428,12 @@ def _render_chart_tab(symbol: str, info: dict):
         ), row=1, col=1)
         fig.add_trace(go.Scatter(
             x=hist.index, y=bb_up,
-            mode="lines", line=dict(color="#00d4aa44", width=1),
+            mode="lines", line=dict(color="rgba(0,212,170,0.27)", width=1),
             name="BB Upper", showlegend=False,
         ), row=1, col=1)
         fig.add_trace(go.Scatter(
             x=hist.index, y=bb_low,
-            mode="lines", line=dict(color="#00d4aa44", width=1),
+            mode="lines", line=dict(color="rgba(0,212,170,0.27)", width=1),
             name="BB Lower", showlegend=False,
         ), row=1, col=1)
 
@@ -453,7 +453,7 @@ def _render_chart_tab(symbol: str, info: dict):
             mode="lines", line=dict(color="#00d4aa", width=1.5),
             name="RSI(14)", showlegend=False,
         ), row=3, col=1)
-        for level, color in [(70, "#ff444477"), (50, "#8b949e55"), (30, "#00d4aa77")]:
+        for level, color in [(70, "rgba(255,68,68,0.47)"), (50, "rgba(139,148,158,0.33)"), (30, "rgba(0,212,170,0.47)")]:
             fig.add_shape(
                 type="line", x0=hist.index[0], x1=hist.index[-1],
                 y0=level, y1=level,
