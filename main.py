@@ -86,14 +86,20 @@ st.markdown("---")
 # ── Page routing ─────────────────────────────────────────────────────────────
 page = st.session_state.page
 
-if page == "Home":
-    from pages.home import render_home
-    render_home()
+try:
+    if page == "Home":
+        from pages.home import render_home
+        render_home()
 
-elif page == "Nifty100":
-    from pages.nifty100 import render_nifty100
-    render_nifty100()
+    elif page == "Nifty100":
+        from pages.nifty100 import render_nifty100
+        render_nifty100()
 
-elif page == "Momentum":
-    from pages.momentum_scanner import render_momentum_scanner
-    render_momentum_scanner()
+    elif page == "Momentum":
+        from pages.momentum_scanner import render_momentum_scanner
+        render_momentum_scanner()
+
+except Exception as _page_err:
+    import traceback
+    st.error(f"Page error: {_page_err}")
+    st.code(traceback.format_exc())
