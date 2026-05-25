@@ -216,6 +216,7 @@ def render_stock_detail(symbol: str):
     bcol, _, wcol, ecol = st.columns([1.1, 4.8, 1.4, 1.4])
     with bcol:
         if st.button("Back", key="detail_back_btn", use_container_width=True):
+            st.session_state.selected_stock = None
             st.session_state.page = "Home"
             st.rerun()
     with wcol:
@@ -549,7 +550,7 @@ def _render_market_sentiment(info: dict, hist: pd.DataFrame):
               SELL {sell_pct}%
             </span>
           </div>
-          <div style="height:8px;background:#30363d;border-radius:4px;overflow:hidden;">
+          <div style="height:8px;background:#e4e7ec;border-radius:4px;overflow:hidden;">
             <div style="height:100%;width:{buy_pct}%;
                         background:linear-gradient(90deg,{COLORS['positive']},{COLORS['positive']}99);
                         border-radius:4px;"></div>
@@ -623,7 +624,7 @@ def _render_performance_tab(symbol: str, info: dict, current: float):
                   <div style="color:{tm};font-size:0.7rem;">52W High</div>
                 </div>
               </div>
-              <div style="position:relative;height:10px;background:#30363d;border-radius:5px;margin:4px 0 20px 0;">
+              <div style="position:relative;height:10px;background:#e4e7ec;border-radius:5px;margin:4px 0 20px 0;">
                 <div style="position:absolute;left:0;top:0;height:100%;width:{pos:.1f}%;
                             background:linear-gradient(90deg,#ff4444,#f0ad4e 50%,#00d4aa);
                             border-radius:5px;"></div>

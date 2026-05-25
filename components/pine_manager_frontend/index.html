@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:      #0d1117;
+  --bg2:     #161b22;
+  --bg3:     #21262d;
+  --border:  #30363d;
+  --text:    #e6edf3;
+  --muted:   #8b949e;
+  --danger:  #ff4444;
+  --accent:  #00d4aa;
+  --a2:      #4d9de0;
+  --warn:    #f0ad4e;
+  --purple:  #7c3aed;
+  --radius:  5px;
+  --font:    'Inter', 'Segoe UI', system-ui, sans-serif;
+  --mono:    'Courier New', monospace;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-x: hidden;
+}
+
+/* ── Panel wrapper ────────────────────────────────────────────────────────── */
+#panel { display: flex; flex-direction: column; background: var(--bg); }
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.ph {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 10px 7px;
+  border-bottom: 1px solid var(--border);
+}
+.ph-title {
+  font-size: 0.78rem; font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--text); flex: 1;
+}
+.ph-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 5px var(--accent);
+  flex-shrink: 0; animation: blink 2.2s ease-in-out infinite;
+}
+@keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.25; } }
+.ph-count { font-size: 0.7rem; color: var(--accent); font-weight: 600; margin-right: 2px; }
+
+.hbtn {
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--muted); font-size: 0.7rem; padding: 3px 7px;
+  border-radius: var(--radius); cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  font-family: var(--font); white-space: nowrap; line-height: 1.4;
+}
+.hbtn:hover { background: var(--border); color: var(--text); }
+.hbtn-add {
+  background: rgba(0,212,170,0.12); border-color: rgba(0,212,170,0.35); color: var(--accent);
+}
+.hbtn-add:hover { background: rgba(0,212,170,0.22); }
+.hbtn-add.active { background: rgba(0,212,170,0.25); border-color: var(--accent); }
+
+/* ── Upload drawer ───────────────────────────────────────────────────────── */
+.upload-drawer {
+  display: none; flex-direction: column; gap: 6px;
+  padding: 10px; background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+}
+.upload-drawer.open { display: flex; }
+.ud-title { font-size: 0.75rem; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.uinput {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border);
+  color: var(--text); font-size: 0.78rem; padding: 5px 8px;
+  border-radius: var(--radius); outline: none; font-family: var(--font);
+}
+.uinput:focus { border-color: var(--accent); }
+.uinput::placeholder { color: var(--muted); }
+.utextarea {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border);
+  color: var(--text); font-size: 0.71rem; padding: 5px 8px;
+  border-radius: var(--radius); outline: none; font-family: var(--mono);
+  resize: vertical; min-height: 90px; line-height: 1.5;
+}
+.utextarea:focus { border-color: var(--accent); }
+.utextarea::placeholder { color: var(--muted); }
+.ud-detect { font-size: 0.7rem; color: var(--muted); min-height: 16px; }
+.dbadge {
+  display: inline-block; padding: 1px 6px; border-radius: 3px;
+  font-size: 0.65rem; font-weight: 700; margin-right: 5px;
+}
+.dbadge-overlay  { background: rgba(0,212,170,0.18); color: var(--accent); }
+.dbadge-pane     { background: rgba(77,157,224,0.18); color: var(--a2); }
+.dbadge-strategy { background: rgba(240,173,78,0.18); color: var(--warn); }
+.ud-row { display: flex; gap: 6px; align-items: center; }
+.save-btn {
+  background: rgba(0,212,170,0.15); border: 1px solid rgba(0,212,170,0.4);
+  color: var(--accent); font-size: 0.75rem; padding: 5px 12px;
+  border-radius: var(--radius); cursor: pointer; font-family: var(--font);
+  font-weight: 600; transition: background 0.12s;
+}
+.save-btn:hover { background: rgba(0,212,170,0.25); }
+.ud-err { color: var(--danger); font-size: 0.7rem; flex: 1; }
+
+/* ── Search ──────────────────────────────────────────────────────────────── */
+.search-wrap { padding: 6px 10px; border-bottom: 1px solid var(--border); }
+.search-input {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border);
+  color: var(--text); font-size: 0.78rem; padding: 5px 10px 5px 26px;
+  border-radius: 20px; outline: none; font-family: var(--font);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: 8px center;
+  transition: border-color 0.15s;
+}
+.search-input:focus { border-color: var(--accent); }
+.search-input::placeholder { color: var(--muted); }
+
+/* ── Scrollable body ─────────────────────────────────────────────────────── */
+#body { overflow-y: auto; overflow-x: hidden; max-height: 520px; }
+#body::-webkit-scrollbar { width: 3px; }
+#body::-webkit-scrollbar-track { background: transparent; }
+#body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ── Section ─────────────────────────────────────────────────────────────── */
+.section { border-bottom: 1px solid var(--border); }
+.sec-hdr {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 10px; cursor: pointer; user-select: none;
+  transition: background 0.1s;
+}
+.sec-hdr:hover { background: var(--bg2); }
+.sec-icon { font-size: 0.72rem; width: 13px; text-align: center; flex-shrink: 0; }
+.sec-label {
+  font-size: 0.67rem; font-weight: 700; letter-spacing: 0.09em;
+  text-transform: uppercase; color: var(--muted); flex: 1;
+}
+.sec-meta { font-size: 0.65rem; color: var(--muted); font-family: var(--mono); }
+.sec-chevron {
+  font-size: 0.78rem; color: var(--muted);
+  transition: transform 0.2s ease; margin-left: 2px; line-height: 1;
+}
+.section.open .sec-chevron { transform: rotate(90deg); }
+.sec-body { overflow: hidden; max-height: 0; transition: max-height 0.22s ease; }
+.section.open .sec-body { max-height: 1600px; }
+.sec-empty { padding: 8px 12px; font-size: 0.72rem; color: var(--muted); font-style: italic; }
+
+/* ── Script row ──────────────────────────────────────────────────────────── */
+.sr {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 10px; min-height: 30px;
+  transition: background 0.08s; position: relative;
+}
+.sr:hover { background: rgba(22,27,34,0.7); }
+.sr.on    { background: rgba(0,212,170,0.05); }
+
+/* ── Toggle switch ───────────────────────────────────────────────────────── */
+.ts { position: relative; width: 26px; height: 14px; flex-shrink: 0; cursor: pointer; }
+.ts input { opacity: 0; width: 0; height: 0; position: absolute; }
+.ts-track {
+  position: absolute; inset: 0;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 14px; transition: background 0.18s, border-color 0.18s;
+}
+.ts-track::before {
+  content: ''; position: absolute; width: 8px; height: 8px;
+  left: 2px; top: 50%; transform: translateY(-50%);
+  background: var(--muted); border-radius: 50%;
+  transition: left 0.18s, background 0.18s;
+}
+.ts input:checked + .ts-track { background: rgba(0,212,170,0.18); border-color: var(--accent); }
+.ts input:checked + .ts-track::before {
+  left: calc(100% - 10px); background: var(--accent);
+  box-shadow: 0 0 4px rgba(0,212,170,0.7);
+}
+
+/* ── Script info ─────────────────────────────────────────────────────────── */
+.sr-icon { font-size: 0.68rem; flex-shrink: 0; }
+.sr-name {
+  font-size: 0.78rem; font-weight: 500; color: var(--text);
+  flex: 1; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; min-width: 0;
+}
+.sr-param { font-size: 0.68rem; color: var(--muted); font-family: var(--mono); flex-shrink: 0; }
+.sr-sys {
+  font-size: 0.58rem; background: var(--bg3); color: var(--muted);
+  padding: 1px 3px; border-radius: 2px; font-weight: 700; flex-shrink: 0;
+}
+
+/* ── Row action buttons ──────────────────────────────────────────────────── */
+.sr-acts { display: flex; gap: 1px; opacity: 0; transition: opacity 0.12s; flex-shrink: 0; }
+.sr:hover .sr-acts { opacity: 1; }
+.abtn {
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  font-size: 0.72rem; padding: 3px 4px; border-radius: 3px;
+  transition: background 0.1s, color 0.1s; line-height: 1; font-family: var(--font);
+}
+.abtn:hover { background: var(--bg3); color: var(--text); }
+.abtn.star-on { color: var(--warn); opacity: 1; }
+.abtn.del:hover { color: var(--danger); }
+
+/* ── Param editor ────────────────────────────────────────────────────────── */
+.pe {
+  display: none; flex-direction: column; gap: 5px;
+  padding: 6px 10px 8px 38px; background: var(--bg2);
+  border-top: 1px solid var(--border);
+}
+.pe.open { display: flex; }
+.pe-row { display: flex; align-items: center; gap: 7px; }
+.pe-lbl {
+  font-size: 0.7rem; color: var(--muted); width: 85px;
+  flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pe-inp {
+  flex: 1; max-width: 90px; background: var(--bg3);
+  border: 1px solid var(--border); color: var(--text);
+  font-size: 0.75rem; padding: 3px 6px; border-radius: 4px;
+  outline: none; font-family: var(--mono);
+}
+.pe-inp:focus { border-color: var(--accent); }
+.pe-chk { width: 13px; height: 13px; accent-color: var(--accent); cursor: pointer; }
+.pe-acts { display: flex; gap: 5px; margin-top: 3px; }
+.pe-btn {
+  font-size: 0.7rem; padding: 3px 9px; border-radius: 4px;
+  cursor: pointer; font-family: var(--font); border: 1px solid transparent;
+  transition: background 0.12s;
+}
+.pe-btn-apply {
+  background: rgba(0,212,170,0.15); border-color: rgba(0,212,170,0.4); color: var(--accent);
+}
+.pe-btn-apply:hover { background: rgba(0,212,170,0.25); }
+.pe-btn-close { background: var(--bg3); border-color: var(--border); color: var(--muted); }
+.pe-btn-close:hover { color: var(--text); }
+
+/* ── Search header ───────────────────────────────────────────────────────── */
+.srch-hdr {
+  padding: 5px 12px; font-size: 0.7rem; color: var(--muted);
+  font-style: italic; border-bottom: 1px solid var(--border);
+}
+</style>
+</head>
+<body>
+<div id="panel">
+
+  <!-- Header -->
+  <div class="ph">
+    <span class="ph-title">Indicators</span>
+    <span class="ph-dot" id="ph-dot" style="display:none"></span>
+    <span class="ph-count" id="ph-count"></span>
+    <button class="hbtn hbtn-add" id="upload-btn" onclick="toggleUpload()">＋ Add</button>
+    <button class="hbtn" onclick="doRescan()" title="Rescan pine_scripts/ folders">↺</button>
+  </div>
+
+  <!-- Upload drawer -->
+  <div class="upload-drawer" id="upload-drawer">
+    <div class="ud-title">Upload Pine Script</div>
+    <input  class="uinput"    id="ud-name" type="text" placeholder="Indicator name…" />
+    <textarea class="utextarea" id="ud-code"
+      placeholder="//@version=5&#10;indicator(&quot;My Script&quot;, overlay=true)&#10;plot(close)"></textarea>
+    <div class="ud-detect" id="ud-detect"></div>
+    <div class="ud-row">
+      <button class="save-btn" onclick="doUpload()">💾 Save</button>
+      <span class="ud-err" id="ud-err"></span>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="search-wrap">
+    <input class="search-input" id="search" type="text"
+      placeholder="Search indicators…" oninput="onSearch()" />
+  </div>
+
+  <!-- Body -->
+  <div id="body"></div>
+
+</div>
+
+<script>
+'use strict';
+
+/* ── Constants ─────────────────────────────────────────────────────────────── */
+var LS_STATE_KEY   = 'pine_panel_v2';   // localStorage key for enabled/fav state
+var LS_ACTIONS_KEY = 'pine_chart_actions'; // cross-iframe chart bridge
+
+/* ── State ────────────────────────────────────────────────────────────────── */
+var sections     = [];
+var allScripts   = {};   // id → script object (deduplicated)
+var enabledSet   = new Set();
+var favSet       = new Set();
+var openSections = new Set(['favorites', 'overlay', 'pane']);
+var editorState  = {};   // id → {open, dirty, pending:{}}
+var searchQ      = '';
+var uploadOpen   = false;
+var updateTimer  = null;
+var dbRendered   = false; // true after first DB render received
+
+/* ── Streamlit protocol ───────────────────────────────────────────────────── */
+function stReady() {
+  window.parent.postMessage(
+    { isStreamlitMessage: true, type: 'streamlit:componentReady', apiVersion: 1 }, '*'
+  );
+}
+
+function stHeight() {
+  var h = document.getElementById('panel').scrollHeight;
+  window.parent.postMessage(
+    { isStreamlitMessage: true, type: 'streamlit:setFrameHeight', height: h + 8 }, '*'
+  );
+}
+
+function stValue(val) {
+  window.parent.postMessage(
+    { isStreamlitMessage: true, type: 'streamlit:setComponentValue', value: val }, '*'
+  );
+}
+
+window.addEventListener('message', function(ev) {
+  if (!ev.data || ev.data.type !== 'streamlit:render') return;
+  var args = ev.data.args || {};
+  if (args.sections) onRender(args.sections);
+});
+
+/* ── localStorage state persistence ─────────────────────────────────────── */
+function saveStateToLS() {
+  try {
+    localStorage.setItem(LS_STATE_KEY, JSON.stringify({
+      enabled:   Array.from(enabledSet),
+      favorites: Array.from(favSet),
+      ts:        Date.now()
+    }));
+  } catch(e) {}
+}
+
+function loadStateFromLS() {
+  try {
+    var raw = localStorage.getItem(LS_STATE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+
+/* ── Cross-iframe chart bridge via localStorage storage events ───────────── */
+function broadcastChartToggle(id, enabled) {
+  try {
+    var pending = JSON.parse(localStorage.getItem(LS_ACTIONS_KEY) || '[]');
+    // Remove any prior action for same id to avoid double-fire
+    pending = pending.filter(function(a) { return a.id !== id; });
+    pending.push({ type: enabled ? 'add' : 'remove', id: id, ts: Date.now() });
+    localStorage.setItem(LS_ACTIONS_KEY, JSON.stringify(pending));
+  } catch(e) {}
+}
+
+/* ── Debounced update flush ──────────────────────────────────────────────── */
+function scheduleUpdate() {
+  if (updateTimer) clearTimeout(updateTimer);
+  updateTimer = setTimeout(flushUpdate, 90);
+}
+
+function flushUpdate() {
+  updateTimer = null;
+  var paramUpdates = {};
+  Object.keys(editorState).forEach(function(id) {
+    var ed = editorState[id];
+    if (ed.dirty && ed.pending) paramUpdates[id] = ed.pending;
+  });
+  stValue({
+    action:        'update',
+    enabled:       Array.from(enabledSet),
+    favorites:     Array.from(favSet),
+    known_ids:     Object.keys(allScripts),   // tell Python which IDs we know about
+    param_updates: paramUpdates,
+    timestamp:     Date.now()
+  });
+  saveStateToLS();
+}
+
+/* ── Render ───────────────────────────────────────────────────────────────── */
+function onRender(newSections) {
+  sections = newSections || [];
+
+  // Rebuild script map (deduplicated by id)
+  allScripts = {};
+  sections.forEach(function(sec) {
+    (sec.scripts || []).forEach(function(s) {
+      if (!allScripts[s.id]) allScripts[s.id] = s;
+    });
+  });
+
+  if (!updateTimer) {
+    // DB is source of truth — load its state
+    var dbEnabled  = new Set();
+    var dbFav      = new Set();
+    Object.keys(allScripts).forEach(function(id) {
+      if (allScripts[id].enabled)  dbEnabled.add(id);
+      if (allScripts[id].favorite) dbFav.add(id);
+    });
+
+    if (!dbRendered) {
+      // First render: seed from localStorage for instant visual restore,
+      // then overlay DB on top (DB wins for any id it knows about)
+      var ls = loadStateFromLS();
+      if (ls) {
+        ls.enabled.forEach(function(id) { enabledSet.add(id); });
+        ls.favorites.forEach(function(id) { favSet.add(id); });
+      }
+      // DB overrides LS for any script it reported on
+      Object.keys(allScripts).forEach(function(id) {
+        if (dbEnabled.has(id))  enabledSet.add(id);
+        else                    enabledSet.delete(id);
+        if (dbFav.has(id))      favSet.add(id);
+        else                    favSet.delete(id);
+      });
+      dbRendered = true;
+    } else {
+      // Subsequent renders: trust DB completely
+      enabledSet = dbEnabled;
+      favSet     = dbFav;
+    }
+  }
+
+  drawPanel();
+  updateHeader();
+  stHeight();
+}
+
+/* ── Draw ─────────────────────────────────────────────────────────────────── */
+function drawPanel() {
+  var body = document.getElementById('body');
+  body.innerHTML = '';
+  var q = searchQ.trim().toLowerCase();
+  if (q) { drawSearch(body, q); }
+  else   { drawSections(body); }
+}
+
+function drawSections(body) {
+  sections.forEach(function(sec) {
+    var scripts = sec.scripts || [];
+    if (!scripts.length) return;
+
+    var isOpen  = openSections.has(sec.key);
+    var onCount = scripts.filter(function(s) { return enabledSet.has(s.id); }).length;
+    var meta    = (onCount ? onCount + ' on · ' : '') + scripts.length;
+
+    var el = document.createElement('div');
+    el.className = 'section' + (isOpen ? ' open' : '');
+    el.dataset.key = sec.key;
+
+    var hdr = document.createElement('div');
+    hdr.className = 'sec-hdr';
+    hdr.innerHTML =
+      '<span class="sec-icon" style="color:' + sec.color + '">' + catIcon(sec.key) + '</span>' +
+      '<span class="sec-label">' + esc(sec.label) + '</span>' +
+      '<span class="sec-meta">' + meta + '</span>' +
+      '<span class="sec-chevron">›</span>';
+    hdr.onclick = function() { toggleSection(sec.key); };
+
+    var bd = document.createElement('div');
+    bd.className = 'sec-body';
+    bd.id = 'sb-' + sec.key;
+
+    el.appendChild(hdr); el.appendChild(bd);
+    body.appendChild(el);
+
+    if (!scripts.length) {
+      bd.innerHTML = '<div class="sec-empty">No scripts — upload a .pine file.</div>';
+    } else {
+      scripts.forEach(function(s) { bd.appendChild(buildRow(s)); });
+    }
+  });
+}
+
+function drawSearch(body, q) {
+  var tokens = q.split(/\s+/).filter(Boolean);
+  var seen   = new Set();
+  var matched = [];
+  sections.forEach(function(sec) {
+    (sec.scripts || []).forEach(function(s) {
+      if (!seen.has(s.id)) {
+        seen.add(s.id);
+        if (tokens.every(function(t) { return s.name.toLowerCase().indexOf(t) !== -1; }))
+          matched.push(s);
+      }
+    });
+  });
+
+  var hdr = document.createElement('div');
+  hdr.className = 'srch-hdr';
+  hdr.textContent = matched.length
+    ? matched.length + ' result' + (matched.length !== 1 ? 's' : '')
+    : 'No results for "' + q + '"';
+  body.appendChild(hdr);
+  matched.forEach(function(s) { body.appendChild(buildRow(s)); });
+}
+
+/* ── Build script row ─────────────────────────────────────────────────────── */
+function buildRow(s) {
+  var wrap = document.createElement('div');
+  var isOn  = enabledSet.has(s.id);
+  var isFav = favSet.has(s.id);
+
+  wrap.innerHTML =
+    '<div class="sr' + (isOn ? ' on' : '') + '" data-id="' + s.id + '">' +
+      '<label class="ts" title="Toggle">' +
+        '<input type="checkbox"' + (isOn ? ' checked' : '') + ' />' +
+        '<span class="ts-track"></span>' +
+      '</label>' +
+      '<span class="sr-icon" style="color:' + catColor(s.category) + '">' + catIcon(s.category) + '</span>' +
+      '<span class="sr-name">' + esc(s.name) + '</span>' +
+      '<span class="sr-param">' + paramHint(s) + '</span>' +
+      (s.builtin ? '<span class="sr-sys">sys</span>' : '') +
+      '<div class="sr-acts">' +
+        '<button class="abtn' + (isFav ? ' star-on' : '') + '" data-act="star" title="Favorite">★</button>' +
+        '<button class="abtn" data-act="edit" title="Parameters">⚙</button>' +
+        (!s.builtin ? '<button class="abtn del" data-act="del" title="Delete">✕</button>' : '') +
+      '</div>' +
+    '</div>' +
+    '<div class="pe' + (editorState[s.id] && editorState[s.id].open ? ' open' : '') + '" id="pe-' + s.id + '">' +
+      buildEditor(s) +
+    '</div>';
+
+  var cb = wrap.querySelector('.ts input');
+  cb.addEventListener('change', function() { onToggle(s.id, this.checked); });
+
+  wrap.querySelectorAll('.abtn').forEach(function(btn) {
+    btn.addEventListener('click', function(ev) {
+      ev.stopPropagation();
+      var act = btn.dataset.act;
+      if      (act === 'star') onStar(s.id);
+      else if (act === 'edit') onEdit(s.id);
+      else if (act === 'del')  onDelete(s.id);
+    });
+  });
+
+  return wrap;
+}
+
+function buildEditor(s) {
+  var params = s.parameters || {};
+  var keys   = Object.keys(params);
+  if (!keys.length) {
+    return '<span style="font-size:0.7rem;color:var(--muted)">No configurable parameters.</span>' +
+           '<div class="pe-acts"><button class="pe-btn pe-btn-close" data-close="' + s.id + '">Close</button></div>';
+  }
+  var html = '';
+  keys.forEach(function(k) {
+    var v   = params[k];
+    var lbl = k.replace(/_/g,' ').replace(/([A-Z])/g,' $1').trim();
+    lbl     = lbl.charAt(0).toUpperCase() + lbl.slice(1);
+    html += '<div class="pe-row"><span class="pe-lbl">' + esc(lbl) + '</span>';
+    if (typeof v === 'boolean') {
+      html += '<input type="checkbox" class="pe-chk" data-key="' + k + '"' + (v ? ' checked' : '') + ' />';
+    } else {
+      var tp = typeof v === 'number' ? 'number' : 'text';
+      html += '<input type="' + tp + '" class="pe-inp" data-key="' + k + '" value="' + escA(String(v)) + '" />';
+    }
+    html += '</div>';
+  });
+  html += '<div class="pe-acts">' +
+    '<button class="pe-btn pe-btn-apply" data-apply="' + s.id + '">Apply</button>' +
+    '<button class="pe-btn pe-btn-close" data-close="' + s.id + '">Close</button>' +
+    '</div>';
+  return html;
+}
+
+function wireEditor(id) {
+  var pane = document.getElementById('pe-' + id);
+  if (!pane) return;
+  pane.querySelectorAll('.pe-inp, .pe-chk').forEach(function(inp) {
+    inp.addEventListener('change', function() { onParamChange(id, this.dataset.key, this.type === 'checkbox' ? this.checked : this.value); });
+    inp.addEventListener('input',  function() { onParamChange(id, this.dataset.key, this.type === 'checkbox' ? this.checked : this.value); });
+  });
+  var applyBtn = pane.querySelector('[data-apply]');
+  var closeBtn = pane.querySelector('[data-close]');
+  if (applyBtn) applyBtn.addEventListener('click', function() { applyParams(id); });
+  if (closeBtn) closeBtn.addEventListener('click', function() { closeEditor(id); });
+}
+
+/* ── Event handlers ───────────────────────────────────────────────────────── */
+function onToggle(id, checked) {
+  if (checked) enabledSet.add(id);
+  else         enabledSet.delete(id);
+
+  // Optimistic: update row class immediately
+  document.querySelectorAll('.sr[data-id="' + id + '"]').forEach(function(row) {
+    if (checked) row.classList.add('on');
+    else         row.classList.remove('on');
+  });
+
+  // Broadcast to chart for instant overlay remove (add needs Python data)
+  broadcastChartToggle(id, checked);
+
+  updateHeader();
+  scheduleUpdate();
+}
+
+function onStar(id) {
+  if (favSet.has(id)) favSet.delete(id);
+  else                favSet.add(id);
+
+  document.querySelectorAll('[data-id="' + id + '"] .abtn[data-act="star"]').forEach(function(btn) {
+    if (favSet.has(id)) btn.classList.add('star-on');
+    else                btn.classList.remove('star-on');
+  });
+
+  scheduleUpdate();
+}
+
+function onEdit(id) {
+  if (!editorState[id]) editorState[id] = { open: false, dirty: false, pending: null };
+  editorState[id].open = !editorState[id].open;
+  var pane = document.getElementById('pe-' + id);
+  if (pane) {
+    if (editorState[id].open) { pane.classList.add('open'); wireEditor(id); }
+    else                      { pane.classList.remove('open'); }
+  }
+  stHeight();
+}
+
+function onParamChange(id, key, value) {
+  if (!editorState[id]) editorState[id] = { open: true, dirty: false, pending: null };
+  var s = allScripts[id];
+  if (!editorState[id].pending)
+    editorState[id].pending = s && s.parameters ? JSON.parse(JSON.stringify(s.parameters)) : {};
+  var orig = s && s.parameters ? s.parameters[key] : null;
+  editorState[id].pending[key] = (typeof orig === 'number') ? (parseFloat(value) || 0) : value;
+  editorState[id].dirty = true;
+}
+
+function applyParams(id) {
+  if (editorState[id] && editorState[id].dirty) {
+    flushUpdate();
+    editorState[id].dirty = false;
+  }
+  closeEditor(id);
+}
+
+function closeEditor(id) {
+  if (editorState[id]) editorState[id].open = false;
+  var pane = document.getElementById('pe-' + id);
+  if (pane) pane.classList.remove('open');
+  stHeight();
+}
+
+function onDelete(id) {
+  if (!confirm('Delete "' + (allScripts[id] ? allScripts[id].name : id) + '"?')) return;
+  stValue({ action: 'delete', delete_id: id, timestamp: Date.now() });
+}
+
+function onSearch() {
+  searchQ = document.getElementById('search').value;
+  drawPanel();
+  stHeight();
+}
+
+function toggleSection(key) {
+  if (openSections.has(key)) openSections.delete(key);
+  else                       openSections.add(key);
+  var el = document.querySelector('.section[data-key="' + key + '"]');
+  if (el) el.classList.toggle('open');
+  stHeight();
+}
+
+function toggleUpload() {
+  uploadOpen = !uploadOpen;
+  var drawer = document.getElementById('upload-drawer');
+  var btn    = document.getElementById('upload-btn');
+  if (uploadOpen) { drawer.classList.add('open'); btn.classList.add('active'); }
+  else            { drawer.classList.remove('open'); btn.classList.remove('active'); }
+  stHeight();
+}
+
+function doRescan() {
+  stValue({ action: 'rescan', timestamp: Date.now() });
+}
+
+function doUpload() {
+  var name = document.getElementById('ud-name').value.trim();
+  var code = document.getElementById('ud-code').value.trim();
+  var err  = document.getElementById('ud-err');
+  if (!name) { err.textContent = 'Enter a name.'; return; }
+  if (!code) { err.textContent = 'Paste Pine Script code.'; return; }
+  err.textContent = '';
+  stValue({ action: 'upload', name: name, code: code, timestamp: Date.now() });
+  document.getElementById('ud-name').value = '';
+  document.getElementById('ud-code').value = '';
+  document.getElementById('ud-detect').innerHTML = '';
+  toggleUpload();
+}
+
+// Live detection badge while typing code
+document.addEventListener('DOMContentLoaded', function() {
+  var codeEl = document.getElementById('ud-code');
+  codeEl.addEventListener('input', function() {
+    var code   = this.value;
+    var detect = document.getElementById('ud-detect');
+    if (!code.trim()) { detect.innerHTML = ''; return; }
+    var isStrat   = /\bstrategy\s*\(/.test(code);
+    var isOverlay = /overlay\s*=\s*true/i.test(code);
+    var type  = isStrat ? 'strategy' : (isOverlay ? 'overlay' : 'pane');
+    var label = isStrat ? 'Strategy' : (isOverlay ? 'Overlay' : 'Pane');
+    detect.innerHTML = '<span class="dbadge dbadge-' + type + '">' + label + '</span>auto-detected';
+  });
+});
+
+/* ── Helpers ──────────────────────────────────────────────────────────────── */
+function updateHeader() {
+  var n   = enabledSet.size;
+  var dot = document.getElementById('ph-dot');
+  var cnt = document.getElementById('ph-count');
+  if (n > 0) { dot.style.display = 'inline-block'; cnt.textContent = n + ' on'; }
+  else        { dot.style.display = 'none';         cnt.textContent = ''; }
+}
+
+function catIcon(key) {
+  return { favorites: '★', overlay: '◈', pane: '◇', strategy: '⚡', template: '◻' }[key] || '○';
+}
+
+function catColor(cat) {
+  return { overlay: '#00d4aa', pane: '#4d9de0', strategy: '#f0ad4e', template: '#7c3aed' }[cat] || '#8b949e';
+}
+
+function paramHint(s) {
+  var p    = s.parameters || {};
+  var keys = ['length', 'period', 'atrPeriod', 'fastPeriod'];
+  for (var i = 0; i < keys.length; i++) {
+    var k = keys[i];
+    if (k in p) { var v = parseInt(p[k], 10); if (!isNaN(v)) return '(' + v + ')'; }
+  }
+  return '';
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                  .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function escA(s) {
+  return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+/* ── Boot ─────────────────────────────────────────────────────────────────── */
+stReady();
+stHeight();
+</script>
+</body>
+</html>

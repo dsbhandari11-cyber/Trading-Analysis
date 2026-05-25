@@ -1,0 +1,122 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #F5F7FA;
+  --panel: #FFFFFF;
+  --panel2: #F0F2F5;
+  --border: rgba(0, 0, 0, 0.08);
+  --border2: rgba(0, 0, 0, 0.12);
+  --hover: rgba(0, 0, 0, 0.04);
+  --active: rgba(0, 0, 0, 0.07);
+  --muted: #9CA3AF;
+  --text: #111827;
+  --text-sub: #6B7280;
+  --bull: #089981;
+  --bear: #F23645;
+  --accent: #2563EB;
+  --topbar: #FFFFFF;
+  --scrollbar: rgba(0, 0, 0, 0.15);
+}
+
+.dark {
+  --bg: #0A0F1C;
+  --panel: #111827;
+  --panel2: #0D1424;
+  --border: rgba(255, 255, 255, 0.06);
+  --border2: rgba(255, 255, 255, 0.10);
+  --hover: rgba(255, 255, 255, 0.04);
+  --active: rgba(255, 255, 255, 0.08);
+  --muted: #4B5563;
+  --text: #E2E8F0;
+  --text-sub: #9CA3AF;
+  --bull: #00C087;
+  --bear: #FF4D6D;
+  --accent: #3B82F6;
+  --topbar: #0D1424;
+  --scrollbar: rgba(255, 255, 255, 0.12);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  letter-spacing: 0;
+}
+
+button:hover {
+  background: var(--hover);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent), transparent 72%);
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+.bg-panel { background: var(--panel); }
+.bg-panel2 { background: var(--panel2); }
+.bg-hover { background: var(--hover); }
+.bg-active { background: var(--active); }
+.border-sep { border-color: var(--border); }
+.border-sep2 { border-color: var(--border2); }
+.text-primary { color: var(--text); }
+.text-sub { color: var(--text-sub); }
+.text-muted { color: var(--muted); }
+.text-bull { color: var(--bull); }
+.text-bear { color: var(--bear); }
+.text-accent { color: var(--accent); }
+.bull-border { border-color: var(--bull) !important; }
+.bear-border { border-color: var(--bear) !important; }
+
+.price-mono {
+  font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.panel-sep {
+  border-color: var(--border);
+}
+
+.watchlist-grid {
+  display: grid;
+  column-gap: 8px;
+}

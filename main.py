@@ -10,6 +10,22 @@ _ROOT = Path(__file__).resolve().parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
+# ── SSL patch — handles corporate proxies / Windows cert-store mismatches ────
+import ssl
+import os
+import urllib3
+
+try:
+    # Use Windows cert store if python-certifi-win32 is installed
+    import certifi_win32  # noqa: F401
+except ImportError:
+    # Fallback: disable SSL verification for local dev.
+    # Safe for a local trading dashboard that only calls trusted public APIs.
+    ssl._create_default_https_context = ssl._create_unverified_context  # type: ignore[attr-defined]
+    os.environ.setdefault("PYTHONHTTPSVERIFY", "0")
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 import streamlit as st
 
 # ── Page config (must be first Streamlit call) ───────────────────────────────
@@ -26,6 +42,18 @@ st.set_page_config(
 )
 
 # ── CSS ──────────────────────────────────────────────────────────────────────
+# Inject a minimal no-flicker override FIRST (before the full stylesheet loads)
+# so there is zero chance of the dim overlay appearing even on first paint.
+st.markdown("""<style>
+.stApp,[data-testid="stAppViewContainer"],[data-testid="stMain"],.main,.main .block-container
+{opacity:1!important;transition:none!important;}
+[data-testid="stStatusWidget"]{display:none!important;}
+.stSkeleton,[data-testid="stSkeleton"]{display:none!important;}
+.element-container,.stMarkdown,.stColumns,.stHorizontalBlock
+{transition:none!important;animation-duration:0s!important;}
+[data-stale="true"],[data-stale="false"]{opacity:1!important;transition:none!important;}
+</style>""", unsafe_allow_html=True)
+
 def _load_css():
     css_path = Path(__file__).parent / "assets" / "style.css"
     if css_path.exists():
@@ -33,21 +61,29 @@ def _load_css():
 
 _load_css()
 
-# ── Auto-refresh: reruns without resetting session_state ─────────────────────
+# ── Auto-refresh ──────────────────────────────────────────────────────────────
+# The first call uses the user-configured interval.  After _get_market_status()
+# runs (below), we write an adaptive interval back to session state so the
+# *next* rerun automatically slows down when all markets are closed.
 try:
-    from streamlit_autorefresh import st_autorefresh
-    _refresh_ms = st.session_state.get("refresh_interval", 60) * 1000
-    st_autorefresh(interval=_refresh_ms, limit=None, key="dashboard_autorefresh")
+    from streamlit_autorefresh import st_autorefresh as _st_autorefresh
+    _refresh_ms = max(30, st.session_state.get("refresh_interval", 60)) * 1000
+    _st_autorefresh(interval=_refresh_ms, limit=None, key="dashboard_autorefresh")
 except ImportError:
     pass  # Graceful fallback if package not yet installed
 
+# ── Pine Script DB — initialise once at startup (auto-loads saved scripts) ───
+try:
+    from components.pine_manager import get_pine_db as _init_pine_db
+    _init_pine_db()          # seeds built-ins, scans disk, survives reboots
+except Exception:
+    pass
+
 # ── Session state defaults ───────────────────────────────────────────────────
 if "page" not in st.session_state:
-    st.session_state.page = "Home"
+    st.session_state.page = "Nifty100"
 if "selected_stock" not in st.session_state:
     st.session_state.selected_stock = None
-if "search_counter" not in st.session_state:
-    st.session_state.search_counter = 0
 if "refresh_interval" not in st.session_state:
     st.session_state.refresh_interval = 60
 
@@ -104,6 +140,12 @@ def _get_market_status() -> dict:
 markets = _get_market_status()
 india_open = markets["India"]["open"]
 
+# Adaptive refresh — clamp to 30 s during live sessions, 120 s off-hours.
+# Written to session state so the *next* autorefresh tick uses the right rate.
+_any_market_open = any(m["open"] for m in markets.values())
+_base_s = st.session_state.get("refresh_interval", 60)
+st.session_state["_eff_refresh_s"] = max(30, _base_s) if _any_market_open else max(120, _base_s)
+
 # ── Watchlist sidebar ────────────────────────────────────────────────────────
 try:
     from components.watchlist_sidebar import render_watchlist_sidebar
@@ -147,87 +189,55 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ── Ticker bar ───────────────────────────────────────────────────────────────
-try:
-    from components.ticker_bar import render_ticker_bar
-    render_ticker_bar()
-except Exception as _e:
-    st.caption(f"Ticker unavailable: {_e}")
+# ── Ticker bar — independent fragment: refreshes without a full page rerun ───
+@st.fragment(run_every=30)
+def _ticker_fragment():
+    try:
+        from components.ticker_bar import render_ticker_bar
+        render_ticker_bar()
+    except Exception as _e:
+        st.caption(f"Ticker unavailable: {_e}")
 
-# ── News banner ──────────────────────────────────────────────────────────────
-try:
-    from components.news_banner import render_news_banner
-    render_news_banner()
-except Exception:
-    pass
+_ticker_fragment()
 
-# ── Global search + navigation row ──────────────────────────────────────────
-from data.stocks_list import SYMBOL_NAMES
+# ── News banner — independent fragment ───────────────────────────────────────
+@st.fragment(run_every=120)
+def _news_fragment():
+    try:
+        from components.news_banner import render_news_banner
+        render_news_banner()
+    except Exception:
+        pass
 
-_all_search_opts = {
-    f"{sym.replace('.NS','').replace('.BO','')} — {name}": sym
-    for sym, name in sorted(SYMBOL_NAMES.items(), key=lambda x: x[0])
-}
+_news_fragment()
 
-_REFRESH_OPTIONS = {"10 sec": 10, "30 sec": 30, "1 min": 60, "5 min": 300, "10 min": 600}
+# ── Navigation ───────────────────────────────────────────────────────────────
 
 NAV_ITEMS = [
-    ("Stocks", "Stocks", "Home"),
-    ("F&O", "F&O", "Momentum"),
-    ("Dashboard", "Dashboard", "Home"),
-    ("Market", "Market", "Nifty100"),
-    ("Portfolio", "Portfolio", None),
-    ("Positions", "Positions", None),
-    ("Orders", "Orders", None),
-    ("Funds", "Funds", None),
-    ("Call Us", "Call Us", None),
-    ("ID", "ID", None),
-    ("Apps", "Apps", None),
-    ("More", "More", None),
+    ("Market",    "Market",       "Nifty100"),
+    ("Chart",     "Chart Studio", "ChartStudio"),
+    ("Portfolio", "Portfolio",    None),
+    ("Orders",    "Orders",       None),
+    ("Funds",     "Funds",        None),
+    ("Call Us",   "Call Us",      None),
+    ("ID",        "ID",           None),
+    ("More",      "More",         None),
 ]
 
-search_col, refresh_col = st.columns([2.4, 0.75])
-
-with search_col:
-    chosen = st.selectbox(
-        "search",
-        [""] + list(_all_search_opts.keys()),
-        index=0,
-        key=f"global_search_{st.session_state.search_counter}",
-        label_visibility="collapsed",
-        placeholder="🔍  Search stock name or symbol…",
-    )
-    if chosen:
-        st.session_state.selected_stock = _all_search_opts[chosen]
-        st.session_state.page = "StockDetail"
-        st.session_state.search_counter += 1
-        st.rerun()
-
-with refresh_col:
-    _current_label = next(
-        (k for k, v in _REFRESH_OPTIONS.items() if v == st.session_state.refresh_interval),
-        "1 min",
-    )
-    _sel = st.selectbox(
-        "⟳ Refresh",
-        list(_REFRESH_OPTIONS.keys()),
-        index=list(_REFRESH_OPTIONS.keys()).index(_current_label),
-        key="refresh_selector",
-    )
-    st.session_state.refresh_interval = _REFRESH_OPTIONS[_sel]
-
 st.markdown('<div class="top-nav-band">', unsafe_allow_html=True)
-nav_cols = st.columns([1.05, 0.75, 1.35, 1.0, 1.15, 1.15, 0.95, 0.85, 1.05, 0.6, 0.7, 0.75])
-current_page = st.session_state.get("page", "Home")
+nav_cols = st.columns([1.05, 1.15, 1.15, 0.95, 0.85, 1.05, 0.6, 0.75])
+current_page = st.session_state.get("page", "Nifty100")
 for col, (key, label, target) in zip(nav_cols, NAV_ITEMS):
-    active = target == current_page or (key == "Stocks" and current_page == "StockDetail")
-    nav_label = f"{'• ' if active else ''}{label}"
+    active = (target == current_page
+              or (key == "Chart" and current_page == "ChartStudio"))
+    nav_label = f"{'▸ ' if active else ''}{label}"
     if col.button(nav_label, key=f"nav_{key}", use_container_width=True):
-        if target:
+        if target and target != current_page:
             st.session_state.page = target
+            st.session_state.selected_stock = None
             st.rerun()
-        else:
-            st.toast(f"{label} tools are coming soon.")
+        elif not target:
+            st.toast(f"{label} — coming soon.")
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ── Page routing ─────────────────────────────────────────────────────────────
@@ -242,9 +252,9 @@ try:
         from pages.nifty100 import render_nifty100
         render_nifty100()
 
-    elif page == "Momentum":
-        from pages.momentum_scanner import render_momentum_scanner
-        render_momentum_scanner()
+    elif page == "ChartStudio":
+        from pages.chart_studio import render_chart_studio
+        render_chart_studio()
 
     elif page == "StockDetail":
         from pages.stock_detail import render_stock_detail
@@ -252,7 +262,7 @@ try:
         if symbol:
             render_stock_detail(symbol)
         else:
-            st.session_state.page = "Home"
+            st.session_state.page = "Nifty100"
             st.rerun()
 
 except Exception as _page_err:

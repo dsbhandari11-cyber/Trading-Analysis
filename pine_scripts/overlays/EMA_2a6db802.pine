@@ -1,0 +1,5 @@
+//@version=5
+indicator("EMA", overlay=true)
+length = input.int(14, title="Length", minval=1)
+src    = input.source(close, title="Source")
+plot(ta.ema(src, length), color=color.new(color.aqua, 0), linewidth=2, title="EMA")

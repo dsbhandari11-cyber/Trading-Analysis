@@ -1,0 +1,4 @@
+//@version=5
+indicator("ATR", overlay=false)
+period = input.int(14, title="Period", minval=1)
+plot(ta.atr(period), color=color.purple, linewidth=2, title="ATR")

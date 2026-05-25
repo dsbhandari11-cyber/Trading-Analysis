@@ -1,6 +1,8 @@
 """
-Home page: 3-column layout — watchlist | index chart | strategy scanner.
-Below: Today's Movers → Momentum Scanner → Recent News.
+Home page: two-column layout — persistent watchlist (left) | analysis panel (right).
+The right panel shows the FULL existing render_stock_detail engine when a stock is selected,
+or the default index-chart + strategy view when nothing is selected.
+Below the fold: Today's Movers → Momentum Scanner → Recent News.
 """
 
 import sys
@@ -9,12 +11,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import streamlit as st
 import pandas as pd
-from plotly.subplots import make_subplots
-import plotly.graph_objects as go
 
 from data.fetcher import (
     get_index_data, get_gainers_losers, get_ticker_prices,
-    get_history, batch_download,
+    batch_download,
 )
 from data.news import fetch_all_headlines
 from data.stocks_list import get_display_name
@@ -24,7 +24,7 @@ from data.technical import (
 )
 from components.watchlist_sidebar import ensure_watchlist_state, all_stock_options, normalize_symbol
 from config import TICKER_SYMBOLS, COLORS, VOLUME_MOMENTUM_MULTIPLIER, RSI_OVERBOUGHT, RSI_OVERSOLD
-from utils.helpers import ist_now, color_for_change, clean_symbol
+from utils.helpers import color_for_change, clean_symbol
 
 _INDEX_OPTIONS = {
     "NIFTY 100":     "^CNX100",
@@ -34,9 +34,11 @@ _INDEX_OPTIONS = {
 }
 
 
-def _go_to_stock(symbol: str):
+# ── State helpers ─────────────────────────────────────────────────────────────
+
+def _select_inline(symbol: str):
+    """Select a stock for inline right-panel display, staying on the Home page."""
     st.session_state.selected_stock = symbol
-    st.session_state.page = "StockDetail"
     st.rerun()
 
 
@@ -50,12 +52,12 @@ def _remove_stock(symbol: str):
     st.session_state.watchlist = [s for s in st.session_state.watchlist if s != symbol]
     if st.session_state.get("selected_stock") == symbol:
         st.session_state.selected_stock = None
-        st.session_state.page = "Home"
 
+
+# ── Cached scanner ────────────────────────────────────────────────────────────
 
 @st.cache_data(ttl=120, show_spinner=False)
 def _quick_scan() -> list:
-    """Lightweight scan of TICKER_SYMBOLS (25 stocks) for the strategy panel."""
     hist_data = batch_download(TICKER_SYMBOLS, period="2mo")
     signals = []
     for sym in TICKER_SYMBOLS:
@@ -70,7 +72,6 @@ def _quick_scan() -> list:
             chg1d = price_change_pct(df, days=1)
             price = float(df["Close"].iloc[-1])
             score = momentum_score(rsi or 50.0, vol_ratio or 1.0, chg1d)
-
             if is_price_breakout(df) and is_volume_spike(df, VOLUME_MOMENTUM_MULTIPLIER, 10):
                 sig = "BREAKOUT"
             elif rsi is not None and rsi < RSI_OVERSOLD:
@@ -79,15 +80,10 @@ def _quick_scan() -> list:
                 sig = "MOMENTUM"
             else:
                 sig = ""
-
             signals.append({
-                "symbol": sym,
-                "price": price,
-                "rsi": rsi,
-                "vol_ratio": vol_ratio,
-                "chg1d": chg1d,
-                "signal": sig,
-                "momentum_score": score,
+                "symbol": sym, "price": price, "rsi": rsi,
+                "vol_ratio": vol_ratio, "chg1d": chg1d,
+                "signal": sig, "momentum_score": score,
             })
         except Exception:
             pass
@@ -95,83 +91,20 @@ def _quick_scan() -> list:
     return signals
 
 
-def _build_index_chart(hist: pd.DataFrame) -> go.Figure:
-    ema20 = hist["Close"].ewm(span=20, adjust=False).mean()
-    ema50 = hist["Close"].ewm(span=50, adjust=False).mean()
-
-    fig = make_subplots(
-        rows=2, cols=1,
-        shared_xaxes=True,
-        row_heights=[0.78, 0.22],
-        vertical_spacing=0.03,
-    )
-
-    fig.add_trace(go.Candlestick(
-        x=hist.index,
-        open=hist["Open"], high=hist["High"],
-        low=hist["Low"], close=hist["Close"],
-        increasing_line_color="#00d4aa",
-        decreasing_line_color="#ff4444",
-        name="Price",
-        showlegend=False,
-    ), row=1, col=1)
-
-    fig.add_trace(go.Scatter(
-        x=hist.index, y=ema20,
-        mode="lines", line=dict(color="#4d9de0", width=1.4),
-        name="EMA 20",
-    ), row=1, col=1)
-
-    fig.add_trace(go.Scatter(
-        x=hist.index, y=ema50,
-        mode="lines", line=dict(color="#f0ad4e", width=1.4, dash="dot"),
-        name="EMA 50",
-    ), row=1, col=1)
-
-    vol_colors = [
-        "#00d4aa" if c >= o else "#ff4444"
-        for c, o in zip(hist["Close"], hist["Open"])
-    ]
-    fig.add_trace(go.Bar(
-        x=hist.index, y=hist["Volume"],
-        marker_color=vol_colors, opacity=0.5,
-        name="Volume", showlegend=False,
-    ), row=2, col=1)
-
-    ax = dict(gridcolor="#21262d", color="#8b949e", linecolor="#30363d")
-    fig.update_layout(
-        paper_bgcolor="#0d1117",
-        plot_bgcolor="#0d1117",
-        font=dict(color="#8b949e", size=11),
-        margin=dict(l=8, r=8, t=16, b=8),
-        height=370,
-        showlegend=True,
-        legend=dict(
-            bgcolor="rgba(0,0,0,0)",
-            font=dict(color="#8b949e", size=10),
-            orientation="h", x=0, y=1.04,
-        ),
-        xaxis=dict(**ax, showgrid=False, rangeslider=dict(visible=False)),
-        yaxis=dict(**ax, showgrid=True),
-        xaxis2=dict(**ax, showgrid=False),
-        yaxis2=dict(**ax, showgrid=False),
-    )
-    return fig
-
-
-# ── Page entry point ─────────────────────────────────────────────────────────
+# ── Page entry point ──────────────────────────────────────────────────────────
 
 def render_home():
-    col_watch, col_chart, col_strat = st.columns([1.1, 2.25, 1.5], gap="medium")
+    left_col, right_col = st.columns([1.1, 2.5], gap="medium")
 
-    with col_watch:
+    with left_col:
         _render_watchlist_panel()
 
-    with col_chart:
-        _render_index_chart()
-
-    with col_strat:
-        _render_strategy_panel()
+    with right_col:
+        sel = st.session_state.get("selected_stock")
+        if sel:
+            _render_stock_analysis_panel(sel)
+        else:
+            _render_default_right_panel()
 
     st.markdown("---")
     _render_gainers_losers()
@@ -181,60 +114,73 @@ def render_home():
     _render_news_feed()
 
 
-# ── Column renders ────────────────────────────────────────────────────────────
+# ── Left panel: watchlist ─────────────────────────────────────────────────────
 
 def _render_watchlist_panel():
     ensure_watchlist_state()
     catalog = all_stock_options()
 
-    st.markdown('<div class="wl-panel-title">Watchlist</div>', unsafe_allow_html=True)
-    st.caption("NSE and US equities")
+    if "wl_edit_mode" not in st.session_state:
+        st.session_state.wl_edit_mode = False
 
+    # Title row + Edit / Done toggle
+    title_col, edit_col = st.columns([3, 1])
+    with title_col:
+        st.markdown('<div class="wl-panel-title">My Watchlist</div>', unsafe_allow_html=True)
+    with edit_col:
+        btn_label = "✓ Done" if st.session_state.wl_edit_mode else "✎ Edit"
+        if st.button(btn_label, key="wl_edit_toggle", use_container_width=True):
+            st.session_state.wl_edit_mode = not st.session_state.wl_edit_mode
+            st.rerun()
+
+    # Search
     query = st.text_input(
         "Search",
-        placeholder="Search ticker or company",
+        placeholder="Search ticker or company…",
         key="home_wl_search",
         label_visibility="collapsed",
     ).strip().lower()
 
-    matches = [
-        (sym, name)
-        for sym, name in catalog.items()
-        if not query
-        or query in sym.lower()
-        or query in name.lower()
-        or query in clean_symbol(sym).lower()
-    ][:20]
+    if query:
+        matches = [
+            (sym, name)
+            for sym, name in catalog.items()
+            if query in sym.lower() or query in name.lower() or query in clean_symbol(sym).lower()
+        ][:6]
+        if matches:
+            st.markdown('<div class="wl-section-label">SEARCH RESULTS</div>', unsafe_allow_html=True)
+            for sel_sym, sel_name in matches:
+                if st.button(
+                    f"{clean_symbol(sel_sym)} — {sel_name[:28]}",
+                    key=f"home_wl_pick_{sel_sym}",
+                    use_container_width=True,
+                ):
+                    _add_stock(sel_sym)
+                    _select_inline(sel_sym)
+        else:
+            st.caption("No matches. Add manually below.")
 
-    if matches and query:
-        st.markdown('<div class="wl-section-label">SEARCH RESULTS</div>', unsafe_allow_html=True)
-        for sel_sym, sel_name in matches[:6]:
-            if st.button(
-                f"{clean_symbol(sel_sym)} - {sel_name}",
-                key=f"home_wl_pick_{sel_sym}",
-                use_container_width=True,
-            ):
-                _add_stock(sel_sym)
-                _go_to_stock(sel_sym)
-
+    # Add ticker manually
     with st.expander("▸ Add ticker manually", expanded=False):
         exchange = st.radio("Exchange", ["NSE", "US"], horizontal=True, key="home_wl_exchange")
         manual = st.text_input("Ticker", placeholder="RELIANCE or AAPL", key="home_wl_manual")
         manual_sym = normalize_symbol(manual, exchange)
-        if st.button("Add ticker", key="home_wl_manual_add", use_container_width=True):
+        if st.button("Add", key="home_wl_manual_add", use_container_width=True):
             if manual_sym:
                 _add_stock(manual_sym)
                 st.toast(f"Added {clean_symbol(manual_sym)}")
+                st.rerun()
 
-    st.markdown('<div class="wl-section-label">WATCHLIST STOCKS</div>', unsafe_allow_html=True)
+    st.markdown('<div class="wl-section-label">STOCKS</div>', unsafe_allow_html=True)
 
     watchlist = st.session_state.get("watchlist", [])
     if not watchlist:
-        st.caption("No stocks added yet. Search above to add.")
+        st.caption("No stocks yet. Search above to add.")
         return
 
     price_data = get_ticker_prices(watchlist)
     price_map = {p["symbol"]: p for p in price_data}
+    edit_mode = st.session_state.wl_edit_mode
 
     for sym in watchlist:
         name = catalog.get(sym) or get_display_name(sym)
@@ -245,34 +191,65 @@ def _render_watchlist_panel():
 
         price_str = f"₹{price:,.2f}" if price else "—"
         pct_color = COLORS["positive"] if pct >= 0 else COLORS["negative"]
-        pct_str = f"{pct:+.2f}%" if price else ""
+        pct_str = f"{pct:+.2f}%" if price else "—"
         arrow = "▲" if pct >= 0 else "▼"
-        card_cls = "wl-stock-card-active" if sym == st.session_state.get("selected_stock") else "wl-stock-card"
+        is_active = sym == st.session_state.get("selected_stock")
 
-        st.markdown(
-            f"""<div class="{card_cls}">
-                <div class="wl-stock-top">
-                    <span class="wl-stock-sym">{ticker}</span>
-                    <span class="wl-stock-price">{price_str}</span>
-                </div>
-                <div class="wl-stock-bot">
-                    <span class="wl-stock-name">{name[:22]}</span>
-                    <span style="color:{pct_color};font-size:0.75rem;font-weight:700;">{arrow} {pct_str}</span>
-                </div>
-            </div>""",
-            unsafe_allow_html=True,
-        )
-        bc1, bc2 = st.columns([5, 1])
-        if bc1.button(
-            f"{ticker} - {name}",
-            key=f"home_wl_sel_{sym}",
-            use_container_width=True,
-        ):
-            _go_to_stock(sym)
-        if bc2.button("✕", key=f"home_wl_rm_{sym}", use_container_width=True):
-            _remove_stock(sym)
-            st.rerun()
+        # Identical structure in both modes: HTML card (c1) + action button (c2).
+        # Only the action button icon differs — ›  in normal mode, 🗑 in edit mode.
+        card_cls = "wl-card-active" if is_active else "wl-card"
+        c1, c2 = st.columns([5, 1])
 
+        with c1:
+            st.markdown(
+                f'<div class="{card_cls}">'
+                f'  <div class="wl-card-top">'
+                f'    <span class="wl-card-ticker">{ticker}</span>'
+                f'    <span class="wl-card-price">{price_str}</span>'
+                f'  </div>'
+                f'  <div class="wl-card-bot">'
+                f'    <span class="wl-card-name">{name[:24]}</span>'
+                f'    <span class="wl-card-pct" style="color:{pct_color};">{arrow} {pct_str}</span>'
+                f'  </div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+        with c2:
+            if edit_mode:
+                # Marker div lets CSS :has() scope styles to only this button
+                st.markdown('<div class="wl-del-marker"></div>', unsafe_allow_html=True)
+                if st.button("🗑", key=f"wl_del_{sym}", use_container_width=True):
+                    _remove_stock(sym)
+                    st.rerun()
+            else:
+                st.markdown('<div class="wl-sel-marker"></div>', unsafe_allow_html=True)
+                if st.button("›", key=f"wl_sel_{sym}", use_container_width=True):
+                    _select_inline(sym)
+
+
+# ── Right panel: stock analysis (full existing engine) ────────────────────────
+
+def _render_stock_analysis_panel(symbol: str):
+    """
+    Renders the FULL existing render_stock_detail analysis inside the right column.
+    No analysis logic lives here — we delegate entirely to the existing engine.
+    """
+    from pages.stock_detail import render_stock_detail
+    render_stock_detail(symbol)
+
+
+# ── Right panel: default view (no stock selected) ─────────────────────────────
+
+def _render_default_right_panel():
+    idx_col, strat_col = st.columns([2.0, 1.2], gap="medium")
+    with idx_col:
+        _render_index_chart()
+    with strat_col:
+        _render_strategy_panel()
+
+
+# ── Index chart ───────────────────────────────────────────────────────────────
 
 def _render_index_chart():
     from components.advanced_chart import render_chart_controls, render_advanced_chart
@@ -293,22 +270,24 @@ def _render_index_chart():
     arrow = "▲" if pct >= 0 else "▼"
 
     st.markdown(
-        f"""<div class="idx-header">
-            <span class="idx-name">{sel_name}</span>
-            <span class="idx-price">{current:,.2f}</span>
-            <span style="color:{clr};font-size:0.88rem;font-weight:700;">
-                &nbsp;{arrow} {abs(change):,.2f} ({abs(pct):.2f}%)
-            </span>
-        </div>""",
+        f'<div class="idx-header">'
+        f'  <span class="idx-name">{sel_name}</span>'
+        f'  <span class="idx-price">{current:,.2f}</span>'
+        f'  <span style="color:{clr};font-size:0.88rem;font-weight:700;">'
+        f'    &nbsp;{arrow} {abs(change):,.2f} ({abs(pct):.2f}%)'
+        f'  </span>'
+        f'</div>',
         unsafe_allow_html=True,
     )
 
     interval = render_chart_controls(f"index_{symbol}")
-    render_advanced_chart(symbol, interval=interval, height=520)
+    render_advanced_chart(symbol, interval=interval, height=420)
 
+
+# ── Strategy panel ────────────────────────────────────────────────────────────
 
 def _render_strategy_panel():
-    st.markdown('<div class="strat-title">Strategy</div>', unsafe_allow_html=True)
+    st.markdown('<div class="strat-title">Strategy Scanner</div>', unsafe_allow_html=True)
 
     scan_type = st.selectbox(
         "Signal filter",
@@ -316,7 +295,6 @@ def _render_strategy_panel():
         key="home_strat_type",
         label_visibility="collapsed",
     )
-
     st.markdown('<div class="strat-section-lbl">Scanner Results</div>', unsafe_allow_html=True)
 
     try:
@@ -335,20 +313,18 @@ def _render_strategy_panel():
         if filtered:
             rows = []
             for s in filtered[:8]:
-                rsi_str = f"{s['rsi']:.0f}" if s.get("rsi") is not None else "N/A"
-                vol_str = f"{s['vol_ratio']:.1f}x" if s.get("vol_ratio") is not None else "N/A"
                 rows.append({
                     "Stock": s["symbol"].replace(".NS", ""),
                     "Price": f"₹{s['price']:,.0f}",
-                    "Chg%": f"{s['chg1d']:+.1f}%" if s.get("chg1d") is not None else "N/A",
-                    "Volume": vol_str,
-                    "RSI": rsi_str,
+                    "Chg%":  f"{s['chg1d']:+.1f}%" if s.get("chg1d") is not None else "N/A",
+                    "Vol":   f"{s['vol_ratio']:.1f}x" if s.get("vol_ratio") is not None else "N/A",
+                    "RSI":   f"{s['rsi']:.0f}" if s.get("rsi") is not None else "N/A",
                 })
             st.dataframe(
                 pd.DataFrame(rows),
                 hide_index=True,
                 use_container_width=True,
-                height=220,
+                height=210,
             )
         else:
             st.info("No signals in current scan.")
@@ -358,36 +334,30 @@ def _render_strategy_panel():
 
     st.markdown("---")
     st.markdown('<div class="strat-section-lbl">Filters</div>', unsafe_allow_html=True)
-
     st.selectbox(
-        "RSI crossovers",
+        "RSI filter",
         ["RSI crossovers", "Overbought >70", "Oversold <30", "Bull cross 50"],
         key="home_rsi_cross",
         label_visibility="collapsed",
     )
     st.selectbox(
-        "Breakout volume",
+        "Volume filter",
         ["All", "> 1.5x avg", "> 2x avg", "> 3x avg"],
         key="home_vol_bk",
         label_visibility="collapsed",
     )
-    st.selectbox(
-        "RS",
-        ["All", "RS > 1.0", "RS > 1.5"],
-        key="home_rs",
-        label_visibility="collapsed",
-    )
-
-    if st.button("🚀 Run Scanner", key="home_run_scan", use_container_width=True):
+    if st.button("🚀 Run Full Scanner", key="home_run_scan", use_container_width=True):
         st.session_state.page = "Momentum"
         st.rerun()
 
 
-# ── Below-the-fold sections ───────────────────────────────────────────────────
+# ── Below-fold: Movers ────────────────────────────────────────────────────────
 
 def _render_gainers_losers():
     st.markdown(
-        '<div class="section-header"><span class="section-title">Today\'s Movers</span></div>',
+        '<div class="section-header">'
+        '<span class="section-title">Today\'s Movers</span>'
+        '</div>',
         unsafe_allow_html=True,
     )
     with st.spinner("Fetching movers…"):
@@ -415,14 +385,14 @@ def _render_mover_list(items: list, pct_color: str):
         st.info("No data.")
         return
     for item in items:
-        sym = item["symbol"]
-        name = get_display_name(sym)
-        price = item["price"]
-        pct = item["pct_change"]
+        sym    = item["symbol"]
+        name   = get_display_name(sym)
+        price  = item["price"]
+        pct    = item["pct_change"]
         ticker = clean_symbol(sym)
         c1, c2, c3, c4 = st.columns([1.4, 2.2, 1.5, 1.1])
-        if c1.button(ticker, key=f"home_mv_{sym}", help=f"Open {name}", use_container_width=True):
-            _go_to_stock(sym)
+        if c1.button(ticker, key=f"home_mv_{sym}", help=name, use_container_width=True):
+            _select_inline(sym)
         c2.markdown(
             f'<span style="color:#667085;font-size:0.78rem;">{name[:20]}</span>',
             unsafe_allow_html=True,
@@ -437,10 +407,14 @@ def _render_mover_list(items: list, pct_color: str):
         )
 
 
+# ── Below-fold: Scanner ───────────────────────────────────────────────────────
+
 def _render_compact_scanner():
     st.markdown(
-        '<div class="section-header"><span class="section-title">Momentum Scanner</span>'
-        '<span class="section-badge">TOP SIGNALS</span></div>',
+        '<div class="section-header">'
+        '<span class="section-title">Momentum Scanner</span>'
+        '<span class="section-badge">TOP SIGNALS</span>'
+        '</div>',
         unsafe_allow_html=True,
     )
     try:
@@ -448,7 +422,7 @@ def _render_compact_scanner():
         top = [s for s in signals if s["signal"]][:6]
 
         if not top:
-            st.info("No active signals in current scan. Markets may be consolidating.")
+            st.info("No active signals. Markets may be consolidating.")
             if st.button("Open Full Scanner →", key="home_open_scanner"):
                 st.session_state.page = "Momentum"
                 st.rerun()
@@ -456,28 +430,29 @@ def _render_compact_scanner():
 
         cols = st.columns(3)
         for i, sig in enumerate(top):
-            clr = COLORS["positive"] if sig["signal"] in ("BREAKOUT", "MOMENTUM") else COLORS["warning"]
-            chg = sig.get("chg1d") or 0.0
+            clr     = COLORS["positive"] if sig["signal"] in ("BREAKOUT", "MOMENTUM") else COLORS["warning"]
+            chg     = sig.get("chg1d") or 0.0
             chg_clr = COLORS["positive"] if chg >= 0 else COLORS["negative"]
             rsi_str = f"{sig['rsi']:.0f}" if sig.get("rsi") is not None else "—"
+            sym_clean = sig["symbol"].replace(".NS", "")
             with cols[i % 3]:
                 st.markdown(
-                    f"""<div class="compact-signal-card" style="border-left-color:{clr};">
-                        <div class="csc-top">
-                            <span class="csc-sym">{sig['symbol'].replace('.NS','')}</span>
-                            <span class="csc-badge" style="color:{clr};">{sig['signal']}</span>
-                        </div>
-                        <div class="csc-price">₹{sig['price']:,.1f} · RSI {rsi_str}</div>
-                        <div style="color:{chg_clr};font-size:0.8rem;font-weight:700;">{chg:+.2f}%</div>
-                    </div>""",
+                    f'<div class="compact-signal-card" style="border-left-color:{clr};">'
+                    f'  <div class="csc-top">'
+                    f'    <span class="csc-sym">{sym_clean}</span>'
+                    f'    <span class="csc-badge" style="color:{clr};">{sig["signal"]}</span>'
+                    f'  </div>'
+                    f'  <div class="csc-price">₹{sig["price"]:,.1f} · RSI {rsi_str}</div>'
+                    f'  <div style="color:{chg_clr};font-size:0.8rem;font-weight:700;">{chg:+.2f}%</div>'
+                    f'</div>',
                     unsafe_allow_html=True,
                 )
                 if st.button(
-                    f"{sig['symbol'].replace('.NS','')} - {get_display_name(sig['symbol'])}",
+                    f"{sym_clean} →",
                     key=f"home_signal_pick_{sig['symbol']}_{i}",
                     use_container_width=True,
                 ):
-                    _go_to_stock(sig["symbol"])
+                    _select_inline(sig["symbol"])
 
         if st.button("View Full Scanner →", key="home_full_scan"):
             st.session_state.page = "Momentum"
@@ -485,29 +460,30 @@ def _render_compact_scanner():
 
     except Exception as e:
         st.warning(f"Scanner data unavailable: {e}")
-        if st.button("Open Full Scanner", key="home_open_scanner_err"):
-            st.session_state.page = "Momentum"
-            st.rerun()
 
+
+# ── Below-fold: News ──────────────────────────────────────────────────────────
 
 def _render_news_feed():
     st.markdown(
-        '<div class="section-header"><span class="section-title">Recent News</span>'
-        '<span class="section-badge">RSS</span></div>',
+        '<div class="section-header">'
+        '<span class="section-title">Recent News</span>'
+        '<span class="section-badge">RSS</span>'
+        '</div>',
         unsafe_allow_html=True,
     )
     with st.spinner("Loading headlines…"):
         headlines = fetch_all_headlines(12)
 
     if not headlines:
-        st.info("News unavailable. Check your internet connection.")
+        st.info("News unavailable.")
         return
 
     for item in headlines:
-        title = item.get("title", "")
-        source = item.get("source", "")
-        link = item.get("link", "#")
-        published = item.get("published", "")
+        title     = item.get("title", "")
+        source    = item.get("source", "")
+        link      = item.get("link", "#")
+        published = str(item.get("published", ""))
         st.markdown(
             f'<div style="background:#ffffff;border:1px solid #dce3ee;border-radius:7px;'
             f'padding:10px 14px;margin:5px 0;">'

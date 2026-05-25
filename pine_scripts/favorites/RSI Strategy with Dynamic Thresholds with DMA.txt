@@ -1,0 +1,258 @@
+//@version=5
+strategy("RSI Strategy with Dynamic Thresholds + Sell Pressure Filter + DMA Filters",
+     shorttitle="RSI Strategy DJ + DMA", overlay=true)
+
+//--------------------------------------------------------
+// Core Parameters
+//--------------------------------------------------------
+rsi_period          = input.int(19, title="RSI Period")
+overbought_base     = input.int(72, title="Base Overbought Level")
+oversold_base       = input.int(31, title="Base Oversold Level")
+ma_period           = input.int(46, title="RSI MA Period")
+use_ma_confirmation = input.bool(true, title="Use RSI Moving Average Confirmation")
+
+// Volatility-based adjustment
+atr_period  = input.int(14, title="ATR Period")
+atr         = ta.atr(atr_period)
+adjustment  = atr * 0.02  // Further reduced adjustment factor
+
+overbought  = overbought_base + adjustment
+oversold    = oversold_base - adjustment
+
+//--------------------------------------------------------
+// Indicators used in filters
+//--------------------------------------------------------
+// RSI
+rsi = ta.rsi(close, rsi_period)
+
+// Moving average used in RSI logic
+rsi_ma  = ta.sma(close, ma_period)
+
+// ROC (for option 1)
+roc_length = input.int(9, title="ROC Length", minval=1)
+roc        = ta.roc(close, roc_length)
+
+// MACD (for option 3)
+macd_fast   = input.int(12, "MACD Fast Length")
+macd_slow   = input.int(26, "MACD Slow Length")
+macd_signal = input.int(9, "MACD Signal Length")
+[macd_line, macd_signal_line, macd_hist] = ta.macd(close, macd_fast, macd_slow, macd_signal)
+
+// Volume selling (for option 4)
+vol_len = input.int(20, "Volume SMA Length (Sell Filter)")
+vol_sma = ta.sma(volume, vol_len)
+
+//--------------------------------------------------------
+// ADX / DMI (for option 5)
+//--------------------------------------------------------
+dmi_len       = input.int(14, "DMI Length")
+adx_smoothing = input.int(14, "ADX Smoothing")
+
+// ta.dmi() signature: ta.dmi(diLength, adxSmoothing)
+[diPlus, diMinus, adx] = ta.dmi(dmi_len, adx_smoothing)
+
+//--------------------------------------------------------
+// Sell Pressure Filter Selection
+//--------------------------------------------------------
+use_sell_filter = input.bool(true, "Use Sell Pressure Filter?")
+sell_filter_type = input.string(     "ROC", "Sell Pressure Filter Type",     options = ["ROC", "RSI < 50", "MACD < 0", "Volume Selling", "ADX DI- > DI+", "None"])
+
+// Build sell pressure condition based on selected option
+sellPressure =     sell_filter_type == "ROC"            ? roc < 0 :
+ sell_filter_type == "RSI < 50"       ? rsi < 50 :
+     sell_filter_type == "MACD < 0"       ? macd_hist < 0 :
+     sell_filter_type == "Volume Selling" ? (volume > vol_sma and close < open) :
+     sell_filter_type == "ADX DI- > DI+"  ? (diMinus > diPlus and adx > 20) :
+     true  // "None": no extra sell pressure condition
+
+//--------------------------------------------------------
+// Base Signals (RSI + MA logic)
+//--------------------------------------------------------
+rawBuy =
+     ta.crossover(rsi, oversold) or
+     (rsi < oversold and (not use_ma_confirmation or ta.crossover(close, rsi_ma)))
+
+rawSell =
+     ta.crossunder(rsi, overbought) or
+     (rsi > overbought and (not use_ma_confirmation or ta.crossunder(close, rsi_ma)))
+
+// Apply sell pressure filter only to sell signals
+buySignal  = rawBuy
+sellSignal = rawSell and (not use_sell_filter or sellPressure)
+
+//--------------------------------------------------------
+// ===== DMA (10/20/50/200) + Volume & Momentum Filters (ADDED) =====
+//   - This block is visual / informational.
+//   - It does NOT change your strategy entries; it only plots extra signals.
+//--------------------------------------------------------
+
+// MA inputs
+dma_ma1_len = input.int(10, "DMA 1 (Short)")
+dma_ma2_len = input.int(20, "DMA 2")
+dma_ma3_len = input.int(50, "DMA 3 (Signal MA)")
+dma_ma4_len = input.int(200, "DMA 4 (Long)")
+
+dma_ma_type = input.string("EMA", "DMA MA Type", options = ["SMA","EMA","WMA","RMA"])
+
+// Volume filter inputs for DMA block
+dma_use_vol  = input.bool(true, "DMA: Enable Volume Filter")
+dma_vol_mult = input.float(1.0, "DMA: Volume Threshold Multiplier", step=0.1, minval=0.1)
+
+// Momentum filter inputs for DMA block
+dma_use_mom   = input.bool(true, "DMA: Enable Momentum Filter")
+dma_mom_type  = input.string("ROC", "DMA: Momentum Type", options=["ROC","RSI","MACD"])
+dma_mom_len   = input.int(12, "DMA: Momentum Length (ROC / RSI)")
+dma_mom_thresh = input.float(0.0, "DMA: Momentum Threshold (ROC % or RSI level)", step=0.1)
+
+// combine filters: AND / OR
+dma_combine_mode = input.string("AND", "DMA: Combine Filters", options=["AND","OR"])
+
+// Signal MA cross choices (lengths)
+dma_long_ma_for_cross  = dma_ma3_len   // default crossing MA (50)
+dma_short_ma_for_cross = dma_ma1_len   // default short MA (10)
+
+// MA function for DMA block
+dma_ma_func(src, len) =>
+    if dma_ma_type == "SMA"
+        ta.sma(src, len)
+    else
+        if dma_ma_type == "EMA"
+            ta.ema(src, len)
+        else
+            if dma_ma_type == "WMA"
+                ta.wma(src, len)
+            else
+                ta.rma(src, len)
+
+// Calculate DMA MAs
+dma_ma10  = dma_ma_func(close, dma_ma1_len)
+dma_ma20  = dma_ma_func(close, dma_ma2_len)
+dma_ma50  = dma_ma_func(close, dma_ma3_len)
+dma_ma200 = dma_ma_func(close, dma_ma4_len)
+
+// Volume filter calculation for DMA:
+// Re-use vol_sma from the strategy's Volume Selling filter
+dma_vol_ok_raw = volume > vol_sma * dma_vol_mult
+dma_vol_ok     = dma_use_vol ? dma_vol_ok_raw : true
+
+// Momentum filter calculation for DMA
+dma_mom_ok_raw = switch dma_mom_type
+    "ROC"  =>
+        dma_roc_val = ta.roc(close, dma_mom_len)
+        dma_roc_val >= dma_mom_thresh
+    "RSI"  =>
+        dma_r = ta.rsi(close, dma_mom_len)
+        dma_r >= dma_mom_thresh
+    "MACD" =>
+        [dma_macdLine, dma_signalLine, dma_hist] = ta.macd(close, 12, 26, 9)
+        dma_hist >= dma_mom_thresh
+    => false
+
+dma_mom_ok = dma_use_mom ? dma_mom_ok_raw : true
+
+// Combine filters
+dma_filters_pass = dma_combine_mode == "AND" ? (dma_vol_ok and dma_mom_ok) : (dma_vol_ok or dma_mom_ok)
+
+// Signals: crossover short <> long DMA MAs
+dma_shortMA = dma_ma_func(close, dma_short_ma_for_cross)
+dma_longMA  = dma_ma_func(close, dma_long_ma_for_cross)
+
+dmaBuySignal  = ta.crossover(dma_shortMA, dma_longMA) and dma_filters_pass
+dmaSellSignal = ta.crossunder(dma_shortMA, dma_longMA) and dma_filters_pass
+
+// ===== DMA Plotting =====
+plot(dma_ma10,  color=color.new(color.yellow,  0), title="DMA MA 10",  linewidth=2)
+plot(dma_ma20,  color=color.new(color.orange,  0), title="DMA MA 20",  linewidth=2)
+plot(dma_ma50,  color=color.new(color.teal,    0), title="DMA MA 50",  linewidth=2)
+plot(dma_ma200, color=color.new(color.fuchsia, 0), title="DMA MA 200", linewidth=2)
+
+// highlight when DMA filters pass (subtle background)
+bgcolor(dma_filters_pass ? color.new(color.green, 90) : na)
+
+// DMA signal markers (separate from RSI strategy signals)
+plotshape(dmaBuySignal,
+     title="DMA Buy",
+     location=location.belowbar,
+     style=shape.labelup,
+     text="DMA BUY",
+     size=size.tiny,
+     textcolor=color.white,
+     color=color.new(color.green, 0))
+
+plotshape(dmaSellSignal,
+     title="DMA Sell",
+     location=location.abovebar,
+     style=shape.labeldown,
+     text="DMA SELL",
+     size=size.tiny,
+     textcolor=color.white,
+     color=color.new(color.red, 0))
+
+// DMA alert conditions (optional, even in strategies)
+alertcondition(dmaBuySignal,  "DMA Buy Signal",  "DMA short MA crossed above long MA and DMA filters passed")
+alertcondition(dmaSellSignal, "DMA Sell Signal", "DMA short MA crossed below long MA and DMA filters passed")
+
+// Info table for DMA filters
+var table dma_info = table.new(position.top_right, 1, 1)
+if barstate.islast
+    table.cell(dma_info, 0, 0,   text = "DMA Vol OK: " + str.tostring(dma_vol_ok) + " | DMA Mom OK: " + str.tostring(dma_mom_ok) + " | DMA Filters: " + dma_combine_mode,         text_color=color.white,        bgcolor=color.new(color.gray, 90))
+
+//--------------------------------------------------------
+// Orders (RSI strategy ONLY)
+//--------------------------------------------------------
+if buySignal
+    strategy.entry("Buy", strategy.long)
+
+if sellSignal
+    strategy.entry("Sell", strategy.short)
+
+//--------------------------------------------------------
+// Candle / background visualization
+//--------------------------------------------------------
+use_candle_colors = input.bool(true, "Color Candles by Pressure / Signals?")
+use_bg_shading    = input.bool(true, "Shade Background in Sell Zone?")
+
+// Define zones
+sellZone = use_sell_filter and sellPressure
+
+// Candle colors
+candleColor =
+     not use_candle_colors ? na :
+     sellZone              ? color.new(color.red, 0) :
+     buySignal             ? color.new(color.lime, 0) :
+     na
+
+barcolor(candleColor)
+
+// Background when sell pressure is active (RSI block)
+bgcolor(use_bg_shading and sellZone ? color.new(color.maroon, 92) : na)
+
+//--------------------------------------------------------
+// Plotting labels & debug (RSI strategy signals)
+//--------------------------------------------------------
+plotshape(
+     series=buySignal,
+     title="RSI Buy Signal",
+     location=location.belowbar,
+     color=color.rgb(8, 128, 240),
+     style=shape.labelup,
+     text="Buy")
+
+plotshape(
+     series=sellSignal,
+     title="RSI Sell Signal",
+     location=location.abovebar,
+     color=color.rgb(8, 0, 0),
+     style=shape.labeldown,
+     text="Sell")
+
+// ATR Debug
+plot(adjustment, title="ATR Adjustment", color=color.rgb(9, 6, 199))
+
+// Optional debugs (can be uncommented if needed)
+// plot(roc, title="ROC", color=color.new(color.orange, 0))
+// plot(macd_hist, title="MACD Histogram")
+// plot(vol_sma, title="Volume SMA")
+// plot(diPlus, title="DI+")
+// plot(diMinus, title="DI-")
+// plot(adx, title="ADX")

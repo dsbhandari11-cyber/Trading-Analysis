@@ -1,0 +1,7 @@
+//@version=5
+indicator("ADX / DMI", overlay=false)
+period = input.int(14, title="Period", minval=1)
+[diPlus, diMinus, adx] = ta.dmi(period, period)
+plot(adx,     color=color.orange, linewidth=2, title="ADX")
+plot(diPlus,  color=color.green,  linewidth=1, title="+DI")
+plot(diMinus, color=color.red,    linewidth=1, title="-DI")

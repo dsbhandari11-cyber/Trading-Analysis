@@ -57,16 +57,22 @@ NEWS_FETCH_TIMEOUT = 10
 MAX_NEWS_ITEMS = 30
 NEWS_API_KEY = os.getenv("NEWS_API_KEY", "")
 
+# ── Pine Script configuration ────────────────────────────────────────────────
+PINE_SCRIPTS_DIR   = "pine_scripts"
+PINE_DB_FILENAME   = "pine_scripts.db"
+PINE_MAX_UPLOAD_KB = 512               # max uploaded file size
+PINE_SUPPORTED_EXT = [".pine", ".txt"]
+
 COLORS = {
-    "positive": "#0f9f6e",
-    "negative": "#d92d20",
-    "neutral": "#667085",
-    "warning": "#f79009",
-    "accent": "#0052a4",
-    "bg_card": "#ffffff",
-    "bg_secondary": "#f8fafc",
-    "bg_primary": "#f5f7fb",
-    "border": "#dce3ee",
-    "text": "#182230",
-    "text_muted": "#667085",
+    "positive":     "#00d4aa",
+    "negative":     "#f43f5e",
+    "neutral":      "#64748b",
+    "warning":      "#f59e0b",
+    "accent":       "#00d4aa",
+    "bg_card":      "#111827",
+    "bg_secondary": "#0d1321",
+    "bg_primary":   "#080d17",
+    "border":       "#1e2d45",
+    "text":         "#e2e8f0",
+    "text_muted":   "#64748b",
 }

@@ -11,8 +11,10 @@ from utils.helpers import clean_symbol
 
 
 def render_ticker_bar():
-    with st.spinner(""):
-        prices = get_ticker_prices(TICKER_SYMBOLS)
+    # get_ticker_prices is @st.cache_data — returns instantly on cache hit.
+    # No spinner: a cache miss resolves in the background via the data manager;
+    # we show the placeholder row instead of blocking the render thread.
+    prices = get_ticker_prices(TICKER_SYMBOLS)
 
     if not prices:
         st.markdown(

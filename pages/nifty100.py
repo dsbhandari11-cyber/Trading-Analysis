@@ -12,6 +12,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from data.fetcher import batch_download, get_pe_ratio
+from data.news import fetch_all_headlines
 from data.technical import calculate_rsi, calculate_volume_ratio, price_change_pct, momentum_score
 from data.stocks_list import NIFTY100_SYMBOLS, get_display_name
 from config import REFRESH_INTERVAL, COLORS, PE_MAX_VALUE, RSI_BULLISH, VOLUME_SPIKE_MULTIPLIER
@@ -37,6 +38,9 @@ def render_nifty100():
 
     filters = _render_filters()
     _render_table(filters)
+
+    st.markdown("---")
+    _render_news_feed()
 
 
 def _render_filters() -> dict:
@@ -256,3 +260,32 @@ def _style_df(display_df: pd.DataFrame, source_df: pd.DataFrame):
         .map(color_score, subset=["Score"])
         .set_properties(**{"font-size": "0.83rem"})
     )
+
+
+def _render_news_feed():
+    st.markdown(
+        '<div class="section-header">'
+        '<span class="section-title">Recent News</span>'
+        '<span class="section-badge">RSS</span>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+    with st.spinner("Loading headlines…"):
+        headlines = fetch_all_headlines(12)
+
+    if not headlines:
+        st.info("News unavailable.")
+        return
+
+    for item in headlines:
+        title     = item.get("title", "")
+        source    = item.get("source", "")
+        link      = item.get("link", "#")
+        published = str(item.get("published", ""))
+        st.markdown(
+            f'<div class="news-card-market">'
+            f'<a href="{link}" target="_blank" class="news-card-title">{title}</a>'
+            f'<div class="news-card-meta">{source} · {published[:16] if published else ""}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
